@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - master
+  # Optionally publish only when a version tag is pushed (uncomment below and remove branches section above)
+  # push:
+  #   tags:
+  #     - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -21,9 +25,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          source-url: https://api.nuget.org/v3/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
 
       - name: Restore
         run: dotnet restore
@@ -32,7 +33,7 @@ jobs:
         id: version
         run: |
           DATE=$(date +'%Y.%m.%d')
-            RUN=${GITHUB_RUN_NUMBER}
+          RUN=${GITHUB_RUN_NUMBER}
           VERSION="$DATE.$RUN"
           echo "Version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
@@ -40,7 +41,9 @@ jobs:
       - name: Pack
         run: dotnet pack PowNet/PowNet.csproj -c Release -o out /p:PackageVersion=${{ steps.version.outputs.VERSION }} /p:ContinuousIntegrationBuild=true
 
-      - name: Publish
-        run: dotlet nuget push out/*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Publish to NuGet.org
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          echo "Pushing packages..."
+          dotnet nuget push out/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
