@@ -147,6 +147,7 @@ namespace PowNet.Configuration
         private static JsonNode? _appsettings;
         private static readonly object _settingsLock = new();
         private static readonly ConcurrentDictionary<string, object> _configCache = new();
+        private static readonly ConcurrentDictionary<string, object> _runtimeOverrides = new(); // runtime set values override env vars
         private static DateTime _lastConfigRefresh = DateTime.MinValue;
         private static readonly TimeSpan _configCacheDuration = TimeSpan.FromMinutes(5);
 
@@ -179,29 +180,36 @@ namespace PowNet.Configuration
         {
             try
             {
-                // Check cache first
+                // 1. Runtime override always wins
+                if (_runtimeOverrides.TryGetValue(key, out var overrideVal))
+                {
+                    if (overrideVal is T tv) return tv;
+                    return ConvertValue<T>(overrideVal?.ToString());
+                }
+
+                // Check cache next
                 var cacheKey = $"config:{key}:{typeof(T).Name}";
                 if (_configCache.TryGetValue(cacheKey, out var cachedValue) && cachedValue is T cached)
                 {
                     return cached;
                 }
 
-                // Check environment variables first
+                // Environment variables (only if no runtime override)
                 var envKey = key.Replace(":", "__");
                 var envValue = System.Environment.GetEnvironmentVariable(envKey);
                 if (!string.IsNullOrEmpty(envValue))
                 {
                     var convertedEnvValue = ConvertValue<T>(envValue);
-                    _configCache.TryAdd(cacheKey, convertedEnvValue!);
+                    _configCache[cacheKey] = convertedEnvValue!;
                     return convertedEnvValue;
                 }
 
-                // Check appsettings
+                // Appsettings
                 var value = GetNestedValue(AppSettings, key);
-                if (value != null)
+                if value != null)
                 {
                     var convertedValue = ConvertValue<T>(value.ToString());
-                    _configCache.TryAdd(cacheKey, convertedValue!);
+                    _configCache[cacheKey] = convertedValue!;
                     return convertedValue;
                 }
 
@@ -221,7 +229,9 @@ namespace PowNet.Configuration
         {
             try
             {
-                // First check environment variables (preferred for secrets)
+                if (_runtimeOverrides.TryGetValue(key, out var runtime) && runtime is string rs)
+                    return rs;
+
                 var envKey = key.Replace(":", "__");
                 var envValue = System.Environment.GetEnvironmentVariable(envKey);
                 if (!string.IsNullOrEmpty(envValue))
@@ -229,8 +239,6 @@ namespace PowNet.Configuration
                     return envValue;
                 }
 
-                // Check Azure Key Vault or other secret providers here in production
-                // For now, fall back to configuration
                 return GetConfigValue(key, defaultValue);
             }
             catch (Exception ex)
@@ -241,7 +249,7 @@ namespace PowNet.Configuration
         }
 
         /// <summary>
-        /// Set configuration value at runtime
+        /// Set configuration value at runtime (takes precedence over env vars for process lifetime)
         /// </summary>
         public static void SetConfigValue(string key, object value)
         {
@@ -260,6 +268,9 @@ namespace PowNet.Configuration
                 }
 
                 current[keys.Last()] = JsonValue.Create(value);
+
+                // store runtime override
+                _runtimeOverrides[key] = value;
 
                 // Clear cached reads for this key exact-prefix
                 var cacheKeys = _configCache.Keys.Where(k => k.StartsWith($"config:{key}:", StringComparison.Ordinal)).ToList();
@@ -309,14 +320,10 @@ namespace PowNet.Configuration
             return result;
         }
 
-        /// <summary>
-        /// Get connection string by name with environment-specific handling
-        /// </summary>
         public static string GetConnectionStringByName(string connectionName)
         {
             try
             {
-                // Try environment-specific connection string first
                 var envSpecificKey = $"ConnectionStrings__{Environment}__{connectionName}";
                 var envSpecificValue = System.Environment.GetEnvironmentVariable(envSpecificKey);
                 if (!string.IsNullOrEmpty(envSpecificValue))
@@ -324,7 +331,6 @@ namespace PowNet.Configuration
                     return envSpecificValue;
                 }
 
-                // Try standard environment variable
                 var envKey = $"ConnectionStrings__{connectionName}";
                 var envValue = System.Environment.GetEnvironmentVariable(envKey);
                 if (!string.IsNullOrEmpty(envValue))
@@ -332,7 +338,6 @@ namespace PowNet.Configuration
                     return envValue;
                 }
 
-                // Fall back to appsettings
                 if (AppSettings["ConnectionStrings"]?[connectionName] is null)
                 {
                     throw new PowNetConfigurationException($"Connection string '{connectionName}' not found", connectionName);
@@ -351,9 +356,6 @@ namespace PowNet.Configuration
             }
         }
 
-        /// <summary>
-        /// Get all connection strings with their names
-        /// </summary>
         public static IEnumerable<KeyValuePair<string, string>> GetConnectionStrings()
         {
             var connectionStrings = AppSettings["ConnectionStrings"]; 
@@ -371,9 +373,6 @@ namespace PowNet.Configuration
             }
         }
 
-        /// <summary>
-        /// Save configuration changes to file
-        /// </summary>
         public static void Save()
         {
             try
@@ -387,7 +386,6 @@ namespace PowNet.Configuration
                     });
                     
                     var configPath = GetConfigurationFilePath();
-                    // Ensure directory exists (in case of relative nested paths in future)
                     var dir = Path.GetDirectoryName(configPath);
                     if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                     {
@@ -406,9 +404,6 @@ namespace PowNet.Configuration
             }
         }
 
-        /// <summary>
-        /// Refresh configuration from file
-        /// </summary>
         public static void RefreshSettings()
         {
             lock (_settingsLock)
@@ -419,9 +414,6 @@ namespace PowNet.Configuration
             }
         }
 
-        /// <summary>
-        /// Create configuration backup
-        /// </summary>
         public static string CreateConfigurationBackup()
         {
             try
@@ -433,7 +425,6 @@ namespace PowNet.Configuration
                 Directory.CreateDirectory(BackupPath);
                 
                 var configPath = GetConfigurationFilePath();
-                // If config does not exist yet (allowed now), create an empty one
                 if (!File.Exists(configPath))
                 {
                     File.WriteAllText(configPath, "{ }");
@@ -449,9 +440,6 @@ namespace PowNet.Configuration
             }
         }
 
-        /// <summary>
-        /// Restore configuration from backup
-        /// </summary>
         public static void RestoreConfigurationFromBackup(string backupPath)
         {
             try
@@ -481,7 +469,6 @@ namespace PowNet.Configuration
 
         private static string DetermineEnvironment()
         {
-            // Check environment variable first
             var env = System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
                      System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
                      System.Environment.GetEnvironmentVariable("PowNet_ENVIRONMENT");
@@ -491,7 +478,6 @@ namespace PowNet.Configuration
                 return env;
             }
 
-            // Check configuration (base file only to avoid recursion)
             try
             {
                 var baseConfigPath = "appsettings.json";
@@ -508,7 +494,6 @@ namespace PowNet.Configuration
             }
             catch { }
 
-            // Default to Production for safety
             return "Production";
         }
 
@@ -516,8 +501,6 @@ namespace PowNet.Configuration
         {
             var configPath = GetConfigurationFilePath();
             
-            // If the configuration file doesn't exist, initialize an empty configuration instead of throwing.
-            // This allows tests and first-run scenarios to set values dynamically without a pre-existing file.
             if (!File.Exists(configPath))
             {
                 _appsettings = new JsonObject();
@@ -551,7 +534,6 @@ namespace PowNet.Configuration
 
             var envFileName = $"appsettings.{Environment}.json";
 
-            // Check if environment-specific config exists
             if (File.Exists(envFileName))
             {
                 return envFileName;
@@ -725,13 +707,11 @@ namespace PowNet.Configuration
 
         private static void LogConfigurationError(string message, Exception exception)
         {
-            // In a real implementation, this would use the logging framework
             System.Diagnostics.Debug.WriteLine($"Configuration Error: {message} - {exception}");
         }
 
         private static void LogConfigurationChange(string key, object value)
         {
-            // In a real implementation, this would use the logging framework
             System.Diagnostics.Debug.WriteLine($"Configuration Changed: {key} = {value}");
         }
 
@@ -740,9 +720,6 @@ namespace PowNet.Configuration
 
     #region Supporting Classes
 
-    /// <summary>
-    /// Configuration validation result
-    /// </summary>
     public class ConfigurationValidationResult
     {
         public bool IsValid { get; set; } = true;

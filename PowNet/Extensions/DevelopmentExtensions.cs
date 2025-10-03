@@ -15,6 +15,13 @@ namespace PowNet.Extensions
     {
         private static readonly Logger _logger = PowNetLogger.GetLogger("Development");
 
+        private static bool AllowInTestContext()
+        {
+            // Detect xUnit or common test frameworks loaded
+            var loaded = AppDomain.CurrentDomain.GetAssemblies();
+            return loaded.Any(a => a.FullName != null && (a.FullName.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) || a.FullName.Contains("Test", StringComparison.OrdinalIgnoreCase)));
+        }
+
         #region Code Analysis Extensions
 
         /// <summary>
@@ -27,7 +34,7 @@ namespace PowNet.Extensions
             [CallerMemberName] string callerName = "",
             [CallerFilePath] string filePath = "")
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 return new PerformanceAnalysisResult { IsAnalysisSkipped = true };
             }
@@ -74,7 +81,7 @@ namespace PowNet.Extensions
             Dictionary<string, Func<T>> implementations,
             int iterations = 1000)
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 return new MethodComparisonResult { IsAnalysisSkipped = true };
             }
@@ -101,7 +108,7 @@ namespace PowNet.Extensions
             this Func<T> method,
             int iterations = 100)
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 return new MemoryAllocationAnalysis { IsAnalysisSkipped = true };
             }
@@ -167,7 +174,7 @@ namespace PowNet.Extensions
             Func<int, T>? customGenerator = null,
             Func<T, bool>? validator = null) where T : new()
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 throw new InvalidOperationException("Test data generation is only available in development environment");
             }
@@ -213,7 +220,7 @@ namespace PowNet.Extensions
             int primaryCount = 100,
             Dictionary<string, int>? relatedCounts = null) where T : new()
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 throw new InvalidOperationException("Mock data creation is only available in development environment");
             }

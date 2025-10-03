@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace PowNet.Extensions;
 
 /// <summary>
-/// Lightweight diagnostics helpers.
+/// Diagnostics helpers (merged AdditionalDiagnosticsExtensions)
 /// </summary>
-public static class AdditionalDiagnosticsExtensions
+public static class DiagnosticsExtensions
 {
     /// <summary>
     /// Measures the execution time of a synchronous function.

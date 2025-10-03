@@ -7,9 +7,10 @@ using PowNet.Extensions;
 namespace PowNet.Extensions
 {
     /// <summary>
-    /// Advanced security utilities and cryptographic extensions
+    /// Consolidated advanced security utilities (passwords, sanitization, tokens, signatures, headers)
+    /// Renamed from AdvancedSecurityExtensions to provide clearer semantic meaning (tools, not only extensions).
     /// </summary>
-    public static partial class AdvancedSecurityExtensions
+    public static partial class AdvancedSecurityTools
     {
         #region Password Security
 
@@ -106,8 +107,6 @@ namespace PowNet.Extensions
         /// </summary>
         public static async Task<bool> IsPasswordCompromisedAsync(string password)
         {
-            // This would typically check against Have I Been Pwned API or similar
-            // For now, just check against common passwords
             var commonPasswords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "password", "123456", "password123", "admin", "qwerty", "letmein",
@@ -121,16 +120,12 @@ namespace PowNet.Extensions
 
         #region Input Sanitization
 
-        /// <summary>
-        /// Sanitize HTML content while preserving safe tags
-        /// </summary>
         public static string SanitizeHtmlContent(this string html, string[]? allowedTags = null)
         {
             if (string.IsNullOrEmpty(html))
                 return string.Empty;
 
             allowedTags ??= new[] { "p", "br", "strong", "em", "u", "ul", "ol", "li", "a", "span" };
-            var allowedTagsSet = new HashSet<string>(allowedTags, StringComparer.OrdinalIgnoreCase);
 
             // Remove script tags and their content
             html = ScriptTagRegex().Replace(html, "");
@@ -142,15 +137,12 @@ namespace PowNet.Extensions
             html = JavaScriptProtocolRegex().Replace(html, "href=\"#\"");
             html = DataProtocolRegex().Replace(html, "src=\"\"");
 
-            // Remove tags not in allowed list
+            // Remove tags not in allowed list (simple pass)
             html = Regex.Replace(html, @"<(?!/?)(?!" + string.Join("|", allowedTags) + @"\b)[^>]*>", "", RegexOptions.IgnoreCase);
 
             return html;
         }
 
-        /// <summary>
-        /// Sanitize file name for safe file system operations
-        /// </summary>
         public static string SanitizeFileName(this string fileName, string replacement = "_")
         {
             if (string.IsNullOrEmpty(fileName))
@@ -164,16 +156,13 @@ namespace PowNet.Extensions
                 sanitized = sanitized.Replace(invalidChar.ToString(), replacement);
             }
 
-            // Remove consecutive replacement characters
             while (sanitized.Contains(replacement + replacement))
             {
                 sanitized = sanitized.Replace(replacement + replacement, replacement);
             }
 
-            // Trim replacement characters from start and end
             sanitized = sanitized.Trim(replacement.ToCharArray());
 
-            // Ensure not empty and not reserved names
             if (string.IsNullOrEmpty(sanitized) || IsReservedFileName(sanitized))
             {
                 sanitized = "file_" + Guid.NewGuid().ToString("N")[..8];
@@ -182,23 +171,18 @@ namespace PowNet.Extensions
             return sanitized;
         }
 
-        /// <summary>
-        /// Sanitize CSV field to prevent CSV injection
-        /// </summary>
         public static string SanitizeCsvField(this string field)
         {
             if (string.IsNullOrEmpty(field))
                 return string.Empty;
 
-            // Remove dangerous CSV injection patterns
             var dangerous = new[] { "=", "+", "-", "@", "\t", "\r", "\n" };
             
             if (dangerous.Any(d => field.StartsWith(d)))
             {
-                field = "'" + field; // Prefix with single quote to neutralize
+                field = "'" + field;
             }
 
-            // Escape quotes and wrap in quotes if contains commas or quotes
             if (field.Contains(',') || field.Contains('"') || field.Contains('\n'))
             {
                 field = "\"" + field.Replace("\"", "\"\"") + "\"";
@@ -211,9 +195,6 @@ namespace PowNet.Extensions
 
         #region Token Security
 
-        /// <summary>
-        /// Generate cryptographically secure random token
-        /// </summary>
         public static string GenerateSecureToken(int length = 32, TokenFormat format = TokenFormat.Base64)
         {
             var bytes = new byte[length];
@@ -230,21 +211,14 @@ namespace PowNet.Extensions
             };
         }
 
-        /// <summary>
-        /// Generate time-based one-time password (TOTP)
-        /// </summary>
         public static string GenerateTOTP(string secret, DateTime? timestamp = null, int digits = 6, int stepSize = 30)
         {
             var time = timestamp ?? DateTime.UtcNow;
             var unixTime = ((DateTimeOffset)time).ToUnixTimeSeconds();
             var counter = unixTime / stepSize;
-
             return GenerateHOTP(secret, counter, digits);
         }
 
-        /// <summary>
-        /// Generate HMAC-based one-time password (HOTP)
-        /// </summary>
         public static string GenerateHOTP(string secret, long counter, int digits = 6)
         {
             var secretBytes = Encoding.UTF8.GetBytes(secret);
@@ -266,9 +240,6 @@ namespace PowNet.Extensions
             return otp.ToString().PadLeft(digits, '0');
         }
 
-        /// <summary>
-        /// Verify TOTP code
-        /// </summary>
         public static bool VerifyTOTP(string secret, string code, DateTime? timestamp = null, int windowSize = 1)
         {
             var time = timestamp ?? DateTime.UtcNow;
@@ -289,9 +260,6 @@ namespace PowNet.Extensions
 
         #region Digital Signatures
 
-        /// <summary>
-        /// Create digital signature for data integrity
-        /// </summary>
         public static string CreateDigitalSignature(string data, string privateKey, SignatureAlgorithm algorithm = SignatureAlgorithm.RSA_SHA256)
         {
             return algorithm switch
@@ -302,9 +270,6 @@ namespace PowNet.Extensions
             };
         }
 
-        /// <summary>
-        /// Verify digital signature
-        /// </summary>
         public static bool VerifyDigitalSignature(string data, string signature, string key, SignatureAlgorithm algorithm = SignatureAlgorithm.RSA_SHA256)
         {
             try
@@ -326,9 +291,6 @@ namespace PowNet.Extensions
 
         #region Security Headers
 
-        /// <summary>
-        /// Generate comprehensive security headers
-        /// </summary>
         public static Dictionary<string, string> GenerateSecurityHeaders(SecurityHeadersConfig? config = null)
         {
             config ??= SecurityHeadersConfig.Default;
@@ -356,16 +318,15 @@ namespace PowNet.Extensions
                 headers["Permissions-Policy"] = config.PermissionsPolicy;
             }
 
-            // Remove server identification headers
-            headers["Server"] = "";
-            headers["X-Powered-By"] = "";
+            headers["Server"] = string.Empty;
+            headers["X-Powered-By"] = string.Empty;
 
             return headers;
         }
 
         #endregion
 
-        #region Private Helper Methods
+        #region Private Helpers
 
         private static char GetRandomChar(char[] chars)
         {
@@ -408,20 +369,9 @@ namespace PowNet.Extensions
             return result.ToString();
         }
 
-        private static string CreateRSASignature(string data, string privateKey)
-        {
-            return data.SignRSA(privateKey);
-        }
-
-        private static string CreateHMACSignature(string data, string key)
-        {
-            return data.ComputeHMAC(key);
-        }
-
-        private static bool VerifyHMACSignature(string data, string signature, string key)
-        {
-            return data.VerifyHMAC(signature, key);
-        }
+        private static string CreateRSASignature(string data, string privateKey) => data.SignRSA(privateKey);
+        private static string CreateHMACSignature(string data, string key) => data.ComputeHMAC(key);
+        private static bool VerifyHMACSignature(string data, string signature, string key) => data.VerifyHMAC(signature, key);
 
         private static bool ConstantTimeEquals(string a, string b)
         {
@@ -433,7 +383,6 @@ namespace PowNet.Extensions
             {
                 result |= a[i] ^ b[i];
             }
-
             return result == 0;
         }
 
@@ -475,7 +424,7 @@ namespace PowNet.Extensions
     public class SecurityHeadersConfig
     {
         public bool EnableHSTS { get; set; } = true;
-        public int HSTSMaxAge { get; set; } = 31536000; // 1 year
+        public int HSTSMaxAge { get; set; } = 31536000;
         public bool HSTSPreload { get; set; } = false;
         public string ContentSecurityPolicy { get; set; } = "default-src 'self'";
         public string XFrameOptions { get; set; } = "DENY";
