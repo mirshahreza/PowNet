@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PowNet.Test/PowNet.Test.csproj" Id="32c8b807-effe-4397-9d2e-67f247dcc44e" />
+  <Project Path="PowNet/PowNet.csproj" />
+</Solution>
