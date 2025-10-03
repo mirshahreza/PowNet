@@ -206,7 +206,7 @@ namespace PowNet.Configuration
 
                 // Appsettings
                 var value = GetNestedValue(AppSettings, key);
-                if value != null)
+                if (value != null)
                 {
                     var convertedValue = ConvertValue<T>(value.ToString());
                     _configCache[cacheKey] = convertedValue!;

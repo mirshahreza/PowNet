@@ -2,6 +2,13 @@
 
 A modern, modular utility and extensions toolkit for .NET 10. This repository includes production-ready helpers for collections, diagnostics, configuration, caching, development tooling, and more – all covered by comprehensive unit tests.
 
+## Documentation
+Centralized detailed docs are split per topic under `Documentation/`:
+- Configuration: [PowNetConfiguration](Documentation/PowNetConfiguration.md), [EnvironmentManager](Documentation/EnvironmentManager.md)
+- Security Core: [AdvancedSecurityTools](Documentation/AdvancedSecurityTools.md), [SecurityExtensions](Documentation/SecurityExtensions.md)
+- Collections: [CollectionExtensions](Documentation/CollectionExtensions.md)
+- (See full index: [INDEX](Documentation/INDEX.md))
+
 ## Features
 - Rich `Collection` and `ConcurrentDictionary` extensions (batching, partitioning, safe parallel ops)
 - `Debug`/validation helpers with development-only behaviours
@@ -9,9 +16,6 @@ A modern, modular utility and extensions toolkit for .NET 10. This repository in
 - Simple caching primitives and warm-up helpers
 - Development tools for code generation and quick analysis
 - Strongly-typed configuration helpers
-
-## Documentation
-- Full API reference: see [DOCS.md](./DOCS.md)
 
 ## Requirements
 - .NET 10
