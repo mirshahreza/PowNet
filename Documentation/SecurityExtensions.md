@@ -1,270 +1,138 @@
 # SecurityExtensions
 
-Comprehensive input validation and lightweight sanitization helpers. These methods are designed to quickly assess untrusted input for common classes of vulnerabilities: SQL Injection, XSS, Path Traversal, URL misuse, weak / malformed credentials, and unsafe file system usage. They return rich `ValidationResult` objects (never throw unless you explicitly call `ThrowIfInvalid()`).
-
-> NOTE: These are defensive, pattern?based heuristics – not a replacement for parameterized SQL, templated HTML rendering, or full content security policies. Use them as an additional guardrail layer.
+Validation and lightweight sanitization utilities aimed at quickly detecting common input risks (SQL Injection, XSS, Path Traversal, weak passwords, malformed email/URL/phone) plus a few defensive helpers. They supplement (not replace) parameterized queries, output encoding and CSP.
 
 ---
-## Contents
-1. Core Validation Methods
-2. Password Strength Evaluation
-3. Sanitization Utilities
-4. Low?Level Security Helpers
-5. Supporting Types (`ValidationResult`, `PasswordPolicy`, etc.)
-6. Usage Patterns & Best Practices
-7. Extended Examples
+## Method Reference
 
----
-## 1. Core Validation Methods
-Each validator inspects the provided string and accumulates issue messages. A clean result has `IsValid == true` and an empty `Issues` list.
-
-### ValidateSqlSafety(string? input, string? parameterName = null)
-Detects obvious SQL injection indicators.
-- Scans for dangerous keywords (e.g. `DROP`, `UNION`, `EXEC`)
-- Regex patterns (e.g. `' OR 1=1`, comment abuse, stacked statements)
-- Suspicious characters (`' ; -- /* */ = < > | &`)
-- Encoded payload attempts (URL decoded re?scan)
-
-Example:
+### ValidateSqlSafety(this string? input, string? parameterName = null)
+Heuristic detection of obvious SQL injection attempts (dangerous keywords, regex patterns, suspicious characters, encoded attacks). Returns `ValidationResult`.
 ```csharp
-var vr = userInput.ValidateSqlSafety("username");
-if(!vr.IsValid) vr.ThrowIfInvalid(); // or log vr.Issues
+var sqlCheck = userText.ValidateSqlSafety("username");
+if(!sqlCheck.IsValid) sqlCheck.ThrowIfInvalid();
 ```
 
-### ValidateXssSafety(string? input, string? parameterName = null)
-Looks for typical XSS vectors:
-- `<script>` blocks
-- Inline event handlers (`onclick=`, `onerror=` ...)
-- `javascript:` pseudo?protocol
-- `data:` payload with HTML/script
-- Encoded XSS (double decoding detection)
-
-Example:
+### ValidateXssSafety(this string? input, string? parameterName = null)
+Flags script blocks, inline event handlers, `javascript:` or dangerous `data:` URIs, encoded XSS patterns.
 ```csharp
-var htmlResult = comment.ValidateXssSafety("comment");
-if(!htmlResult.IsValid) Console.WriteLine(string.Join(";", htmlResult.Issues));
+var xss = comment.ValidateXssSafety("comment");
 ```
 
-### ValidatePathSafety(string? filePath, string? parameterName = null, bool allowAbsolutePaths = false)
-Checks:
-- Relative traversal (`../` or `..\\`)
-- Absolute path prohibition (unless allowed)
-- Executable / scripting file extensions
-- Null byte inclusion
-- Windows reserved device names (e.g. `CON`, `NUL`)
-
-Example:
+### ValidatePathSafety(this string? filePath, string? parameterName = null, bool allowAbsolutePaths = false)
+Detects `../` traversal, absolute path usage (optional), dangerous extensions, null bytes, reserved device names.
 ```csharp
-filePath.ValidatePathSafety("uploadPath").ThrowIfInvalid();
+filePath.ValidatePathSafety("upload").ThrowIfInvalid();
 ```
 
-### ValidateEmail(string? email, string? parameterName = null)
-RFC?inspired checks (simplified):
-- Basic regex format
-- Overall length <= 254
-- Local part <= 64; domain <= 255
-- No consecutive dots
-
-Example:
+### ValidateEmail(this string? email, string? parameterName = null)
+Simplified RFC checks (format, length limits, no consecutive dots). Returns issues if invalid.
 ```csharp
 var emailRes = email.ValidateEmail("email");
-if(!emailRes.IsValid) return BadRequest(emailRes.Issues);
 ```
 
-### ValidatePhoneNumber(string? phoneNumber, string? parameterName = null, bool requireCountryCode = false)
-Normalizes by removing common formatting symbols then validates:
-- Regex pattern (digits + optional formatting) length 7–15
-- Country code presence when required (leading '+')
-
-Example:
+### ValidatePhoneNumber(this string? phone, string? parameterName = null, bool requireCountryCode = false)
+Normalizes formatting; enforces length 7–15; optionally requires leading `+`.
 ```csharp
 var phoneRes = phone.ValidatePhoneNumber("phone", requireCountryCode:true);
 ```
 
-### ValidateUrl(string? url, string? parameterName = null, string[]? allowedSchemes = null)
-Examines:
-- Scheme membership (default `http|https`)
-- Host presence
-- Disallows localhost / private IP blocks (RFC1918) by default
-- Suspicious patterns (data:, javascript:, file:, UNC, `../`)
-
-Example:
+### ValidateUrl(this string? url, string? parameterName = null, string[]? allowedSchemes = null)
+Ensures scheme allowed (default http/https), host present, disallows localhost/private ranges & suspicious patterns.
 ```csharp
-var urlRes = url.ValidateUrl("redirect", new[]{"https"});
+var urlRes = link.ValidateUrl("website", new[]{"https"});
 ```
 
----
-## 2. Password Strength Evaluation
-### ValidatePasswordStrength(string? password, PasswordPolicy? policy = null)
-Scores password and classifies into: VeryWeak, Weak, Medium, Strong, VeryStrong.
-
-Scoring dimensions:
-- Length (minimum + recommended thresholds)
-- Presence of uppercase / lowercase / digits / special characters
-- Penalizes: common password list, long repeats (>3), sequential slices (e.g. `abc`, `123`, `qwe`)
-
-Example:
+### ValidatePasswordStrength(this string? password, PasswordPolicy? policy = null)
+Scores and classifies password (length, character classes, penalties for common / repeated / sequential patterns). Returns `PasswordValidationResult` (inherits `ValidationResult`).
 ```csharp
-var policy = PasswordPolicy.Strict; // 12+ length etc.
-var pwResult = password.ValidatePasswordStrength(policy);
-if(!pwResult.IsValid)
-    Console.WriteLine(string.Join(";", pwResult.Issues));
-Console.WriteLine($"Score={pwResult.Score} Strength={pwResult.Strength}");
+var pwRes = password.ValidatePasswordStrength(PasswordPolicy.Strict);
+if(!pwRes.IsValid) Console.WriteLine(string.Join(";", pwRes.Issues));
 ```
 
-Policy presets:
-- `PasswordPolicy.Default` (8 / 12)
-- `PasswordPolicy.Strict`  (12 / 16 mandatory complexity)
-- `PasswordPolicy.Relaxed` (6 / 8 fewer requirements)
-
----
-## 3. Sanitization Utilities
-These modify content to neutralize harmful constructs. Use AFTER validation (not a silver bullet).
-
-### SanitizeForHtml(string? input)
-- HTML encodes entire string (prevents raw tag injection)
-- Strips: `<script>`, inline event handlers, `javascript:` pseudo protocol
-
-Example:
+### SanitizeForHtml(this string? input)
+HTML?encodes entire string then strips script patterns & inline handlers (defense-in-depth; not a rich HTML sanitizer).
 ```csharp
-string safe = rawInput.SanitizeForHtml();
+string safeHtml = raw.SanitizeForHtml();
 ```
 
-### SanitizeForSql(string? input)
-Performs minimal neutralization (not a replacement for parameterized queries):
-- Escapes single quotes ? `''`
-- Removes `--` comments, `;` terminators, and block comment markers `/* */`
-
-Example:
+### SanitizeForSql(this string? input)
+Escapes `'` and removes obvious injection punctuation (`-- ; /* */`). For final defense only—still use parameters.
 ```csharp
-var filtered = userValue.SanitizeForSql();
+string fragment = userVal.SanitizeForSql();
 ```
 
-### SanitizeFilePath(string? filePath, bool allowDirectorySeparators = true)
-Removes traversal fragments, null bytes, and illegal filesystem characters. Optionally strips directory separators for pure basenames.
-
-Example:
+### SanitizeFilePath(this string? filePath, bool allowDirectorySeparators = true)
+Removes traversal markers, null bytes, unsafe characters; optionally strips separators.
 ```csharp
-string storedName = uploadedName.SanitizeFilePath(allowDirectorySeparators:false);
+string stored = originalName.SanitizeFilePath(allowDirectorySeparators:false);
 ```
 
----
-## 4. Low?Level Security Helpers
 ### ConstantTimeEquals(this ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-Performs XOR aggregation to avoid early exit timing side?channels. Returns false if length mismatch.
-
-Example:
+Timing?attack resistant byte comparison.
 ```csharp
-bool match = expected.AsSpan().ConstantTimeEquals(actual);
+bool match = expected.AsSpan().ConstantTimeEquals(provided.AsSpan());
 ```
 
 ### SafeJoin(this DirectoryInfo root, params string[] segments)
-Builds a canonical absolute path and ensures it remains inside the `root` directory boundary. Throws `UnauthorizedAccessException` on traversal.
-
-Example:
+Builds canonical path & ensures it stays under root. Throws on traversal.
 ```csharp
-var root = new DirectoryInfo(basePath);
-string full = root.SafeJoin("sub", "file.txt");
+var fullPath = new DirectoryInfo(rootPath).SafeJoin("sub","file.txt");
 ```
 
 ### EnsureNotDefault<T>(this T value, string paramName)
-Utility guard that throws for default(T) (e.g. 0 for int, null for ref types, Guid.Empty, etc.).
-
-Example:
+Throws `ArgumentException` if value equals default(T).
 ```csharp
-int pageSize = inputSize.EnsureNotDefault("pageSize");
+int size = pageSize.EnsureNotDefault("pageSize");
 ```
 
 ---
-## 5. Supporting Types
+## Supporting Types
 ### ValidationResult
 | Property | Meaning |
 |----------|---------|
-| IsValid | true if no issues recorded |
-| ErrorMessage | Summary (when invalid) |
-| Issues | Detailed list of findings |
+| IsValid | True when no issues |
+| ErrorMessage | Summary text when invalid |
+| Issues | Detailed findings |
 
-Factory Methods:
-```csharp
-ValidationResult.Success();
-ValidationResult.Failure("reason", new List<string>{"detail1","detail2"});
-```
-`ThrowIfInvalid()` raises `PowNetValidationException` with issue aggregation.
+Methods: `Success()`, `Failure(msg, issues?)`, `ThrowIfInvalid()`.
 
 ### PasswordValidationResult : ValidationResult
-Adds:
-- `PasswordStrength Strength`
-- `int Score`
+Adds `PasswordStrength Strength`, `int Score`.
 
 ### PasswordPolicy
-| Property | Purpose |
-|----------|---------|
-| MinLength | Minimum allowed length |
-| RecommendedLength | Additional scoring threshold |
-| RequireUppercase / Lowercase / Digits / SpecialChars | Complexity flags |
-| SpecialCharacters | Set of recognized special glyphs |
+Configurable requirements & three presets:
+- `Default` (min 8, recommended 12, all complexity)
+- `Strict` (min 12, recommended 16, strict requirements)
+- `Relaxed` (min 6, reduced complexity)
 
-Presets: `Default`, `Strict`, `Relaxed`.
-
-### PasswordStrength (enum)
-VeryWeak = 0, Weak, Medium, Strong, VeryStrong.
+### PasswordStrength enum
+`VeryWeak, Weak, Medium, Strong, VeryStrong`.
 
 ---
-## 6. Usage Patterns & Best Practices
-- ALWAYS still use parameterized queries; `ValidateSqlSafety` catches only blatant injection patterns.
-- Prefer server?side templating or safe component frameworks; `ValidateXssSafety` is heuristic.
-- Store only sanitized / normalized filenames; keep original if needed for display in a separate safe field.
-- Combine password strength evaluation with breach checking (e.g. HIBP API) – current common list is illustrative.
-- Treat any `Issues` content as security telemetry (log centrally with rate limiting to avoid log flooding).
-
----
-## 7. Extended Examples
-### Multi?Field Form Validation
+## Usage Pattern Example
 ```csharp
-var emailV  = form.Email.ValidateEmail("email");
-var urlV    = form.Website.ValidateUrl("website");
-var pathV   = form.FilePath.ValidatePathSafety("filePath");
-var passV   = form.Password.ValidatePasswordStrength();
-
-var failures = new[]{emailV, urlV, pathV, passV}.Where(v => !v.IsValid).ToList();
-if(failures.Any())
+var validators = new[]{
+    form.Email.ValidateEmail("email"),
+    form.Website.ValidateUrl("website"),
+    form.Password.ValidatePasswordStrength(),
+    form.UploadName.ValidatePathSafety("upload")
+};
+var failures = validators.Where(v => !v.IsValid).ToList();
+if (failures.Any())
 {
-    foreach(var f in failures)
+    foreach (var f in failures)
         Console.WriteLine($"Invalid: {f.ErrorMessage} -> {string.Join(",", f.Issues)}");
     return; // reject
 }
 ```
 
-### Safe Storage of Upload Filename
-```csharp
-string original = formFile.FileName;
-string safeName = original.SanitizeFilePath(allowDirectorySeparators:false);
-var targetPath = new DirectoryInfo(uploadRoot).SafeJoin(safeName);
-await using var fs = File.Create(targetPath);
-await formFile.CopyToAsync(fs);
-```
-
-### Enforcing Strict Password Policy at Registration
-```csharp
-var policy = PasswordPolicy.Strict;
-var pwRes  = password.ValidatePasswordStrength(policy);
-if(!pwRes.IsValid || pwRes.Strength < PasswordStrength.Strong)
-    return Results.BadRequest(pwRes.Issues);
-```
-
-### Constant Time Session Token Comparison
-```csharp
-if(!expectedToken.AsSpan().ConstantTimeEquals(providedToken.AsSpan()))
-    return Results.Unauthorized();
-```
+---
+## Limitations & Notes
+- Regex heuristics may produce false positives.
+- Not a substitute for prepared statements / templated output.
+- URL & email validation simplified (no IDN/punycode normalization).
+- Password common list limited; integrate breach APIs for stronger checks.
 
 ---
-## Limitations
-- Regex based; may produce false positives for unusual but benign input.
-- No canonicalization of internationalized domain names (IDN) in URL/email validation.
-- Not a replacement for layered security controls (CSP, output encoding libraries, WAF, RBAC).
-
----
-## Change Log Notes
-- Consolidated multiple safety checks into single extension class.
-- Added `EnsureNotDefault` & `SafeJoin` for general defensive coding.
+## Change Highlights
+- Consolidated helper methods & added defensive utilities (`SafeJoin`, `EnsureNotDefault`).

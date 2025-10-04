@@ -1,240 +1,138 @@
 # AdvancedSecurityTools
 
-Unified advanced security helper toolkit providing: secure password generation, entropy estimation, basic weak password detection, HTML / file name / CSV sanitization, secure random token creation (multiple formats), HOTP / TOTP one–time passwords, digital signatures (HMAC + RSA hook), and HTTP security header composition.
+High-level consolidated security utility class providing:
+- Secure password generation with character class guarantees
+- Password entropy estimation and basic weak password detection
+- HTML / File Name / CSV sanitization helpers
+- Secure random token generation in multiple encodings
+- HOTP / TOTP one?time password generation & verification (RFC 4226 / 6238 style SHA?1)
+- Digital signature creation & verification (HMAC SHA-256 + RSA SHA-256)
+- Security HTTP header composition (HSTS, CSP, etc.)
+
+> NOTE: This class offers building blocks; production systems still need proper secret storage, rate limiting, and robust HTML sanitization for rich content.
 
 ---
-## Contents
-1. Overview & Design Notes
-2. Password Utilities
-3. Sanitization Helpers
-4. Token Generation (Random / HOTP / TOTP)
-5. Digital Signatures
-6. Security Headers
-7. Supporting Types (TokenFormat, SignatureAlgorithm, SecurityHeadersConfig)
-8. End?to?End Usage Examples
+## Method Reference
+Each method lists purpose, parameters, return value and a usage example.
 
----
-## 1. Overview & Design Notes
-- All crypto randomness uses `RandomNumberGenerator` (CSPRNG).
-- HOTP/TOTP implementation follows RFC 4226 / 6238 (SHA?1 variant) for compatibility.
-- HTML sanitization performs a light defensive strip (NOT a full HTML sanitizer for untrusted rich content; for high?risk contexts integrate a battle?tested library like AngleSharp / HtmlSanitizer).
-- Methods are static & side?effect free except for randomness.
+### GenerateSecurePassword(int length = 16, bool includeUppercase = true, bool includeLowercase = true, bool includeNumbers = true, bool includeSpecialChars = true, string excludeChars = "0O1lI|`", bool avoidAmbiguous = true)
+Generates a cryptographically secure password ensuring at least one character from each selected category, then shuffles.
 
-Thread safety: All methods are stateless; per?call RNG instances are disposed immediately.
+Parameters: obvious boolean inclusion flags; `excludeChars` + `avoidAmbiguous` filter visually confusing glyphs.
+Returns: `string` password.
 
----
-## 2. Password Utilities
-### GenerateSecurePassword
+Example:
 ```csharp
-string pwd = AdvancedSecurityTools.GenerateSecurePassword(
-    length: 20,
-    includeUppercase: true,
-    includeLowercase: true,
-    includeNumbers: true,
-    includeSpecialChars: true,
-    excludeChars: "0O1lI|`",   // remove ambiguous glyphs
-    avoidAmbiguous: true);
+string pwd = AdvancedSecurityTools.GenerateSecurePassword(length:20, includeSpecialChars:true);
 ```
-Generates a cryptographically secure random password ensuring at least one character from every selected class. If all character class flags are false an `ArgumentException` is thrown.
 
-Parameters:
-- length: Total password length.
-- include* flags: Toggle individual character sets.
-- excludeChars + avoidAmbiguous: Filter ambiguous characters (e.g. `O` vs `0`).
-
-Return: Randomized password (characters shuffled after forced inclusions).
-
-### CalculatePasswordEntropy
+### CalculatePasswordEntropy(string password)
+Estimates entropy in bits using detected character set size * length.
+Returns: `double` (bits).
 ```csharp
 double bits = AdvancedSecurityTools.CalculatePasswordEntropy(pwd);
 ```
-Estimates entropy = `length * log2(charsetSize)` using detected character classes. Approximation; does not incorporate pattern penalties.
 
-### IsPasswordCompromisedAsync
+### IsPasswordCompromisedAsync(string password)
+Demo weak list check (in-memory). Returns: `Task<bool>` true if on weak list.
 ```csharp
 bool weak = await AdvancedSecurityTools.IsPasswordCompromisedAsync("password123");
 ```
-Demo weak password check against a small in?memory set (placeholder for HaveIBeenPwned style API integration). Returns true if matched (case?insensitive).
 
----
-## 3. Sanitization Helpers
-### SanitizeHtmlContent (extension on string)
+### SanitizeHtmlContent(this string html, string[]? allowedTags = null)
+Removes script tags, inline event handlers, dangerous protocols, & non?allowed tags (light heuristic sanitizer). Returns sanitized HTML.
 ```csharp
-string raw = "<script>alert(1)</script><a href=\"javascript:alert(2)\">x</a>";
-string safe = raw.SanitizeHtmlContent();
+string safe = rawHtml.SanitizeHtmlContent();
 ```
-Removes:
-- `<script>` blocks (+ contents)
-- Inline event handlers `on*=`
-- `javascript:` and `data:` URI patterns in `href`/`src`
-- Tags not in `allowedTags` (default: formatting & anchor basics)
 
-Note: Not a full DOM policy sanitizer.
-
-### SanitizeFileName
+### SanitizeFileName(this string fileName, string replacement = "_")
+Normalizes OS-invalid characters, collapses duplicates, guards reserved device names.
 ```csharp
-string safeFile = "inva?lid:na*me.txt".SanitizeFileName();
+string safeName = "bad?name<>.txt".SanitizeFileName();
 ```
-Replaces OS?invalid filename characters with `_`, collapses repeats, trims replacement chars, and produces a fallback random stub for reserved names (`CON`, `NUL`, ...).
 
-### SanitizeCsvField
+### SanitizeCsvField(this string field)
+Neutralizes CSV injection by prefixing `'` if leading special char and RFC4180 quoting.
 ```csharp
-string csvSafe = "=2+3".SanitizeCsvField();  // => "'=2+3"
+string safeCell = "=2+3".SanitizeCsvField();
 ```
-Neutralizes CSV injection vectors by prefixing `'` if the field starts with `= + - @` or control chars, and RFC4180?quotes if containing comma / quote / newline.
 
----
-## 4. Token Generation (Random / HOTP / TOTP)
-### GenerateSecureToken
+### GenerateSecureToken(int length = 32, TokenFormat format = TokenFormat.Base64)
+Creates random bytes and encodes as Hex / Base64 / Base64Url / Alphanumeric.
 ```csharp
-string hex = AdvancedSecurityTools.GenerateSecureToken(16, TokenFormat.Hex);
-string b64url = AdvancedSecurityTools.GenerateSecureToken(32, TokenFormat.Base64Url);
-string alphaNum = AdvancedSecurityTools.GenerateSecureToken(24, TokenFormat.Alphanumeric);
+string token = AdvancedSecurityTools.GenerateSecureToken(24, TokenFormat.Base64Url);
 ```
-Produces random bytes then encodes according to `TokenFormat`:
-- Hex: lowercase hex string
-- Base64: standard Base64 w/o padding
-- Base64Url: URL safe variant (RFC 4648) w/o padding
-- Alphanumeric: Index into `[A-Za-z0-9]`
 
-### GenerateHOTP
+### GenerateHOTP(string secret, long counter, int digits = 6)
+Computes HOTP (HMAC-SHA1, dynamic truncation). Returns numeric code zero?padded.
 ```csharp
-string hotp = AdvancedSecurityTools.GenerateHOTP(secret: "shared-key", counter: 1234, digits: 6);
+string hotp = AdvancedSecurityTools.GenerateHOTP("shared", 1234);
 ```
-Implements dynamic truncation of HMAC?SHA1 result. `digits` defines output length (mod 10^digits).
 
-### GenerateTOTP
+### GenerateTOTP(string secret, DateTime? timestamp = null, int digits = 6, int stepSize = 30)
+Derives HOTP counter from Unix time / step; returns code.
 ```csharp
-string totp = AdvancedSecurityTools.GenerateTOTP(secret: "shared-key", digits: 6, stepSize: 30);
+string totp = AdvancedSecurityTools.GenerateTOTP("shared-secret");
 ```
-Computes HOTP with time counter = floor(unixTime / stepSize).
 
-### VerifyTOTP
+### VerifyTOTP(string secret, string code, DateTime? timestamp = null, int windowSize = 1)
+Checks provided code across ±window steps (30s default) using constant-time compare. Returns `bool`.
 ```csharp
-bool valid = AdvancedSecurityTools.VerifyTOTP("shared-key", totp, windowSize: 1);
+bool ok = AdvancedSecurityTools.VerifyTOTP("shared-secret", totp);
 ```
-Sliding verification across ±`windowSize` time steps (each = 30s by default) to tolerate minor clock drift. Uses constant?time compare.
 
-Security Note: For production, prefer a stronger hash (SHA?256) variant and enforce rate limiting.
-
----
-## 5. Digital Signatures
-### CreateDigitalSignature
+### CreateDigitalSignature(string data, string privateKey, SignatureAlgorithm algorithm = SignatureAlgorithm.RSA_SHA256)
+Dispatches to RSA or HMAC signing helpers (project extension methods). Returns Base64 signature.
 ```csharp
-// HMAC (symmetric)
-string sig = AdvancedSecurityTools.CreateDigitalSignature(
-    data: "important-payload",
-    privateKey: "hmac-secret",
-    algorithm: SignatureAlgorithm.HMAC_SHA256);
+string sig = AdvancedSecurityTools.CreateDigitalSignature("payload","hmac-key", SignatureAlgorithm.HMAC_SHA256);
 ```
-Dispatches to:
-- `data.ComputeHMAC(key)` (must exist elsewhere in project) for HMAC_SHA256
-- `data.SignRSA(privateKey)` for RSA_SHA256
 
-### VerifyDigitalSignature
+### VerifyDigitalSignature(string data, string signature, string key, SignatureAlgorithm algorithm = SignatureAlgorithm.RSA_SHA256)
+Verifies signature; returns false on failure or exception.
 ```csharp
-bool ok = AdvancedSecurityTools.VerifyDigitalSignature(
-    data: "important-payload",
-    signature: sig,
-    key: "hmac-secret",
-    algorithm: SignatureAlgorithm.HMAC_SHA256);
+bool valid = AdvancedSecurityTools.VerifyDigitalSignature("payload", sig, "hmac-key", SignatureAlgorithm.HMAC_SHA256);
 ```
-Returns false on signature mismatch OR any internal exception (fail?closed pattern).
 
-RSA Note: `privateKey`/`key` strings assume existing helper conversions (e.g. PEM) in extension methods not shown here.
-
----
-## 6. Security Headers
-### GenerateSecurityHeaders
+### GenerateSecurityHeaders(SecurityHeadersConfig? config = null)
+Composes recommended security headers removing server fingerprinting.
+Returns: `Dictionary<string,string>`.
 ```csharp
 var headers = AdvancedSecurityTools.GenerateSecurityHeaders(SecurityHeadersConfig.Strict);
-foreach (var kv in headers)
-{
-    response.Headers[kv.Key] = kv.Value; // pseudo code
-}
+foreach (var kv in headers) response.Headers[kv.Key] = kv.Value; // pseudo
 ```
-Generates hardened defaults:
-- `Strict-Transport-Security` (if enabled)
-- `Content-Security-Policy`
-- `X-Frame-Options`
-- `X-Content-Type-Options`
-- `X-XSS-Protection` (legacy header – optionally remove if not desired)
-- `Referrer-Policy`
-- `Permissions-Policy`
-- Clears server identification (`Server`, `X-Powered-By`).
-
-Extend by modifying `SecurityHeadersConfig`.
 
 ---
-## 7. Supporting Types
+## Supporting Types
 ### TokenFormat
-| Value | Meaning |
-|-------|---------|
-| Base64 | Standard Base64 (no trailing `=`) |
-| Base64Url | URL safe variant |
-| Hex | Lowercase hex encoding |
-| Alphanumeric | Only `[A-Za-z0-9]` set |
+`Base64, Base64Url, Hex, Alphanumeric` – controls encoding.
 
 ### SignatureAlgorithm
-| Value | Notes |
-|-------|-------|
-| RSA_SHA256 | Uses RSA + SHA256 (extension method dependency) |
-| HMAC_SHA256 | Symmetric HMAC (SHA256) |
+`RSA_SHA256` (asymmetric), `HMAC_SHA256` (symmetric).
 
 ### SecurityHeadersConfig
-Properties:
-- EnableHSTS (default true)
-- HSTSMaxAge (seconds; default 31536000 ~ 1 year)
-- HSTSPreload (adds `; preload`)
-- ContentSecurityPolicy (default `default-src 'self'`)
-- XFrameOptions (default `DENY`)
-- ReferrerPolicy (default `strict-origin-when-cross-origin`)
-- PermissionsPolicy (sample restrictive defaults)
+Properties: HSTS enable/max/preload, CSP, frame options, referrer policy, permissions policy. Presets: `Default`, `Strict`.
 
-Factory presets:
+---
+## Practical Scenarios
 ```csharp
-var def = SecurityHeadersConfig.Default;
-var strict = SecurityHeadersConfig.Strict; // CSP: default-src 'none'; script/style/img 'self'
+// Issue onboarding credentials
+string tempPwd = AdvancedSecurityTools.GenerateSecurePassword(18);
+string totpSecret = AdvancedSecurityTools.GenerateSecureToken(20, TokenFormat.Base64Url);
+string firstCode = AdvancedSecurityTools.GenerateTOTP(totpSecret);
+
+// Sign & verify webhook payload
+string body = JsonSerializer.Serialize(payload);
+string mac = AdvancedSecurityTools.CreateDigitalSignature(body, hmacKey, SignatureAlgorithm.HMAC_SHA256);
+bool accepted = AdvancedSecurityTools.VerifyDigitalSignature(body, mac, hmacKey, SignatureAlgorithm.HMAC_SHA256);
 ```
 
 ---
-## 8. End?to?End Usage Examples
-### Issue a Password + TOTP for 2FA Setup
-```csharp
-string onboardingPwd = AdvancedSecurityTools.GenerateSecurePassword(18);
-string provisioningSecret = AdvancedSecurityTools.GenerateSecureToken(20, TokenFormat.Base64Url);
-string initialTotp = AdvancedSecurityTools.GenerateTOTP(provisioningSecret);
-```
-
-### API Hardening (Minimal)
-```csharp
-var secHeaders = AdvancedSecurityTools.GenerateSecurityHeaders();
-foreach (var h in secHeaders)
-    httpContext.Response.Headers[h.Key] = h.Value;
-```
-
-### File Upload Normalization + Audit Token
-```csharp
-string clientName = formFile.FileName.SanitizeFileName();
-string auditToken = AdvancedSecurityTools.GenerateSecureToken(24, TokenFormat.Hex);
-// store (clientName, auditToken)
-```
-
-### CSV Export Cell Safety
-```csharp
-string safeCell = userInput.SanitizeCsvField();
-writer.WriteLine(safeCell);
-```
-
----
-## Security Hardening Suggestions (Beyond Scope)
-- Integrate PBKDF2 / Argon2 for password hashing (these helpers do NOT hash).
-- Replace SHA1 HOTP with SHA256/512 variant if interoperable.
-- Rate limit TOTP verification attempts.
-- Consider full HTML sanitizer for user?generated rich content.
+## Security Notes
+- Weak password list is illustrative; integrate external breach API for stronger detection.
+- For TOTP in production consider migrating to SHA-256 variant and enforce attempt rate limits.
+- HTML sanitizer is minimal—use a full DOM policy sanitizer for rich user content.
 
 ---
 ## Limitations
-- Weak password detection list is illustrative only.
-- RSA helpers rely on external extension methods not documented here.
-- HTML sanitizer intentionally minimal.
+- Entropy estimation does not penalize predictable patterns.
+- RSA helpers rely on project extension methods (`SignRSA`, etc.) not documented here.

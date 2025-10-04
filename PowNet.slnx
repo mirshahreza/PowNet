@@ -1,4 +1,52 @@
 <Solution>
+  <Folder Name="/Documentation/">
+    <File Path="Documentation/AdvancedSecurityTools.md" />
+    <File Path="Documentation/ApiCallService.md" />
+    <File Path="Documentation/ApiConfiguration.md" />
+    <File Path="Documentation/ArrayExtensions.md" />
+    <File Path="Documentation/AsyncExtensions.md" />
+    <File Path="Documentation/AuthExtensions.md" />
+    <File Path="Documentation/BaseClasses.md" />
+    <File Path="Documentation/CacheExtensions.md" />
+    <File Path="Documentation/CodeModels.md" />
+    <File Path="Documentation/CollectionExtensions.md" />
+    <File Path="Documentation/ConfigurationExtensions.md" />
+    <File Path="Documentation/ConfigurationMonitor.md" />
+    <File Path="Documentation/ControllerConfiguration.md" />
+    <File Path="Documentation/DatabaseConfiguration.md" />
+    <File Path="Documentation/DataMapperExtensions.md" />
+    <File Path="Documentation/DataTableExtensions.md" />
+    <File Path="Documentation/DateTimeExtensions.md" />
+    <File Path="Documentation/DebugExtensions.md" />
+    <File Path="Documentation/DevelopmentExtensions.md" />
+    <File Path="Documentation/DevelopmentTools.md" />
+    <File Path="Documentation/DiagnosticsExtensions.md" />
+    <File Path="Documentation/DynamicCodeService.md" />
+    <File Path="Documentation/EncryptionExtensions.md" />
+    <File Path="Documentation/Enums.md" />
+    <File Path="Documentation/EnvironmentManager.md" />
+    <File Path="Documentation/EventBusExtensions.md" />
+    <File Path="Documentation/FeatureManager.md" />
+    <File Path="Documentation/INDEX.md" />
+    <File Path="Documentation/IOExtensions.md" />
+    <File Path="Documentation/JsonExtensions.md" />
+    <File Path="Documentation/ListExtensions.md" />
+    <File Path="Documentation/MemoryService.md" />
+    <File Path="Documentation/ObjectExtensions.md" />
+    <File Path="Documentation/PerformanceExtensions.md" />
+    <File Path="Documentation/PowNetClassGenerator.md" />
+    <File Path="Documentation/PowNetConfiguration.md" />
+    <File Path="Documentation/PowNetException.md" />
+    <File Path="Documentation/PowNetLogger.md" />
+    <File Path="Documentation/SecurityExtensions.md" />
+    <File Path="Documentation/SecurityMiddleware.md" />
+    <File Path="Documentation/StreamExtensions.md" />
+    <File Path="Documentation/StringExtensions.md" />
+    <File Path="Documentation/SystemExtensions.md" />
+    <File Path="Documentation/UserModels.md" />
+    <File Path="Documentation/WorkflowExtensions.md" />
+  </Folder>
+  <Project Path="PowNet.DocGen/PowNet.DocGen.csproj" />
   <Project Path="PowNet.Test/PowNet.Test.csproj" Id="32c8b807-effe-4397-9d2e-67f247dcc44e" />
   <Project Path="PowNet/PowNet.csproj" />
 </Solution>
