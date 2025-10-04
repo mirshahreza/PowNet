@@ -55,7 +55,7 @@ namespace PowNet.Extensions
         {
             if (jToken is null) return [];
             if (jToken is not JArray)
-                new AppEndException("InputParameterIsNotJArray", System.Reflection.MethodBase.GetCurrentMethod())
+                new PowNetException("InputParameterIsNotJArray", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Input", jToken)
                     .GetEx();
             return (JArray)jToken;

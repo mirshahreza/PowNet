@@ -75,7 +75,7 @@ namespace PowNet.Extensions
         public static void ValidateIfExist(this FileInfo fileInfo)
         {
             if (File.Exists(fileInfo.FullName))
-                new AppEndException($"FileAlreadyExist", System.Reflection.MethodBase.GetCurrentMethod())
+                new PowNetException($"FileAlreadyExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Path", fileInfo.FullName)
                     .GetEx();
         }
@@ -83,7 +83,7 @@ namespace PowNet.Extensions
         public static void ValidateIfNotExist(this FileInfo fileInfo)
         {
             if (!File.Exists(fileInfo.FullName))
-                new AppEndException("FileDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
+                new PowNetException("FileDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Path", fileInfo.FullName)
                     .GetEx();
         }

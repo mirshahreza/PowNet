@@ -18,7 +18,7 @@ namespace PowNet.Configuration
             }
             catch
             {
-                throw new AppEndException("ConnectionNotFound", System.Reflection.MethodBase.GetCurrentMethod())
+                throw new PowNetException("ConnectionNotFound", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("ConnectionName", connectionName)
                     .GetEx();
             }

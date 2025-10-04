@@ -48,8 +48,7 @@ namespace PowNet.Services
 using System;
 using System.Text.Json;
 using PowNet;
-using AppEndDbIO;
-using AppEndApi;
+using ServIo;
 
 namespace $Namespace$
 {
@@ -63,9 +62,10 @@ $Methods$
         internal static string DbDialogTemplate(string MethodName)
         {
             return @"
-        public static object? $MethodName$(JsonElement ClientQueryJE, AppEndUser? Actor)
+        public static object? $MethodName$(JsonElement clientQuery, PowNetUser? actor)
         {
-            return AppEndDbIO.ClientQuery.GetInstanceByQueryJson(ClientQueryJE, Actor?.ContextInfo).Exec();
+            // Implement dialog logic here (placeholder).
+            return null;
         }
 ".Replace("$MethodName$", MethodName);
         }
@@ -73,7 +73,7 @@ $Methods$
         internal static string NotMappedTemplate(string MethodName)
         {
             return @"
-        public static object? $MethodName$(AppEndUser? Actor)
+        public static object? $MethodName$(PowNetUser? actor)
         {
             return true;
         }
@@ -82,36 +82,39 @@ $Methods$
 
         internal static string DbProducerTemplate(string MethodName, List<string>? args)
         {
-            string inputArgs = args == null ? "" : String.Join(", ", args);
-            inputArgs = inputArgs.Trim().Length == 0 ? "string DbConfName" : "string DbConfName," + inputArgs;
+            string inputArgs = args == null ? "" : string.Join(", ", args);
+            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName," + inputArgs;
             return @"
         public static object? $MethodName$($InputArgs$)
         {
-            return DbIO.Instance(DatabaseConfiguration.FromSettings(DbConfName)).ToScalar($""EXEC [DBO].[$MethodName$] $Args$"");
+            // Replace with actual stored procedure execution logic.
+            return null;
         }
 ".Replace("$MethodName$", MethodName).Replace("$InputArgs$", inputArgs).Replace("$Args$", ArgsToSqlArgs(args));
         }
 
         internal static string DbScalarFunctionTemplate(string MethodName, List<string>? args)
         {
-            string inputArgs = args == null ? "" : String.Join(", ", args);
-            inputArgs = inputArgs.Trim().Length == 0 ? "string DbConfName" : "string DbConfName," + inputArgs;
+            string inputArgs = args == null ? "" : string.Join(", ", args);
+            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName," + inputArgs;
             return @"
         public static object? $MethodName$($InputArgs$)
         {
-            return DbIO.Instance(DatabaseConfiguration.FromSettings(DbConfName)).ToScalar($""SELECT [DBO].[$MethodName$]($Args$)"");
+            // Replace with actual scalar function call logic.
+            return null;
         }
 ".Replace("$MethodName$", MethodName).Replace("$InputArgs$", inputArgs).Replace("$Args$", ArgsToSqlArgs(args));
         }
 
         internal static string DbTableFunctionTemplate(string MethodName, List<string>? args)
         {
-            string inputArgs = args == null ? "" : String.Join(", ", args);
-            inputArgs = inputArgs.Trim().Length == 0 ? "string DbConfName" : "string DbConfName," + inputArgs;
+            string inputArgs = args == null ? "" : string.Join(", ", args);
+            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName," + inputArgs;
             return @"
         public static object? $MethodName$($InputArgs$)
         {
-            return DbIO.Instance(DatabaseConfiguration.FromSettings(DbConfName)).ToScalar($""SELECT * FROM [DBO].[$MethodName$]($Args$)"");
+            // Replace with actual table function call logic.
+            return null;
         }
 ".Replace("$MethodName$", MethodName).Replace("$InputArgs$", inputArgs).Replace("$Args$", ArgsToSqlArgs(args));
         }
@@ -122,23 +125,12 @@ $Methods$
             List<string> sb = new();
             foreach (string s in args)
             {
-                string[] argParts = s.Split(" ");
-                if (NeedSingleQuote(argParts[0])) sb.Add("'{" + argParts[1] + "}'");
-                else sb.Add("{" + argParts[1] + "}");
+                string[] argParts = s.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                if (argParts.Length < 2) continue;
+                sb.Add("{" + argParts[1] + "}");
             }
 
             return string.Join(", ", sb);
-        }
-
-        internal static bool NeedSingleQuote(string typePart)
-        {
-            string tp = typePart.Trim().ToLower();
-            if (tp.StartsWithIgnoreCase("int")) return false;
-            if (tp.StartsWithIgnoreCase("float")) return false;
-            if (tp.StartsWithIgnoreCase("bool")) return false;
-            if (tp.StartsWithIgnoreCase("decimal")) return false;
-
-            return true;
         }
     }
 }

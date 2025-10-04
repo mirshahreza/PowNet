@@ -162,7 +162,7 @@ target.MergePatch(patch); // a removed; user.name -> y
 
 ## 7. Error Handling Strategy
 
-All *Try* methods swallow exceptions intentionally for resilience; use explicit deserialize if you need error visibility. `ToJArray` throws a custom exception (legacy `AppEndException`) when token type mismatch.
+All *Try* methods swallow exceptions intentionally for resilience; use explicit deserialize if you need error visibility.
 
 ---
 

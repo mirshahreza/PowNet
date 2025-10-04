@@ -233,21 +233,5 @@ namespace PowNet.Common
         }
     }
 
-    #region Backward Compatibility
-    /// <summary>
-    /// Backward compatibility alias - will be marked as obsolete in future versions
-    /// </summary>
-    [Obsolete("Use PowNetException instead. This alias will be removed in a future version.")]
-    public class AppEndException : PowNetException
-    {
-        public AppEndException(string message, MethodBase? methodBase = null) : base(message, methodBase) { }
-        public AppEndException(string message, Exception innerException, MethodBase? methodBase = null) : base(message, innerException, methodBase) { }
-    }
-
-    [Obsolete("Use PowNetExceptionExtensions instead. This alias will be removed in a future version.")]
-    public static class AppEndExceptionExtensions
-    {
-        public static Exception GetEx(this AppEndException appEndException) => ((PowNetException)appEndException).GetEx();
-    }
-    #endregion
+    
 }

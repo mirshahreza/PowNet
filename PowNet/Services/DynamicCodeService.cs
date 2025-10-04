@@ -79,7 +79,7 @@ namespace PowNet.Services
         {
             ApiFileAddress? codeMap = CodeMaps.FirstOrDefault(cm => cm.MethodFullName.EqualsIgnoreCase(methodFullName));
             return codeMap is null
-                ? throw new AppEndException($"MethodDoesNotExist : [ {methodFullName} ]", System.Reflection.MethodBase.GetCurrentMethod())
+                ? throw new PowNetException($"MethodDoesNotExist : [ {methodFullName} ]", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("MethodFullName", methodFullName)
                     .GetEx() : codeMap.FilePath;
         }
@@ -88,7 +88,7 @@ namespace PowNet.Services
         {
             ApiFileAddress? codeMap = CodeMaps.FirstOrDefault(cm => cm.FilePath.EndsWithIgnoreCase(typeFullName + ".cs"));
             return codeMap is null
-                ? throw new AppEndException("ClassFileDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
+                ? throw new PowNetException("ClassFileDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("TypeFullName", typeFullName)
                     .GetEx() : codeMap.FilePath;
         }
@@ -129,7 +129,7 @@ namespace PowNet.Services
             var parts = MethodPartsNames(methodFullName);
             string classFullName = methodFullName.Replace($".{parts.Item3}", "");
             string methodName = parts.Item3;
-            string? filePath = GetMethodFilePath(methodFullName) ?? throw new AppEndException("MethodFullNameDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
+            string? filePath = GetMethodFilePath(methodFullName) ?? throw new PowNetException("MethodFullNameDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("MethodFullName", methodFullName)
                     .GetEx();
             string controllerBody = File.ReadAllText(filePath);
@@ -158,7 +158,7 @@ namespace PowNet.Services
             {
                 var failures = result.Diagnostics.Where(diagnostic => diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
                 var error = failures.FirstOrDefault();
-                throw new AppEndException($"{error?.Id}: {error?.GetMessage()}", MethodBase.GetCurrentMethod()).GetEx();
+                throw new PowNetException($"{error?.Id}: {error?.GetMessage()}", MethodBase.GetCurrentMethod()).GetEx();
             }
 
             mStream.Seek(0, SeekOrigin.Begin);
@@ -213,7 +213,7 @@ namespace PowNet.Services
             AddReferencesFor(typeof(System.Linq.Expressions.Expression).Assembly, references);
             AddReferencesFor(typeof(System.Text.Encodings.Web.JavaScriptEncoder).Assembly, references);
             AddReferencesFor(typeof(Exception).Assembly, references);
-            AddReferencesFor(typeof(AppEndException).Assembly, references);
+            AddReferencesFor(typeof(PowNetException).Assembly, references);
             AddReferencesFor(typeof(ArgumentNullException).Assembly, references);
 
             return references;
@@ -257,10 +257,10 @@ namespace PowNet.Services
 
         public static Tuple<string?, string, string> MethodPartsNames(string methodFullPath)
         {
-            if (methodFullPath.Trim() == "") throw new AppEndException("MethodFullPathCanNotBeEmpty", System.Reflection.MethodBase.GetCurrentMethod())
+            if (methodFullPath.Trim() == "") throw new PowNetException("MethodFullPathCanNotBeEmpty", System.Reflection.MethodBase.GetCurrentMethod())
                             .GetEx();
             string[] parts = methodFullPath.Trim().Split('.');
-            if (parts.Length < 2 || parts.Length > 3) throw new AppEndException($"MethodMustContainsAtLeast2PartsSeparatedByDot", System.Reflection.MethodBase.GetCurrentMethod())
+            if (parts.Length < 2 || parts.Length > 3) throw new PowNetException($"MethodMustContainsAtLeast2PartsSeparatedByDot", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("MethodFullPath", methodFullPath)
                     .GetEx();
             return parts.Length == 3 ? new(parts[0], parts[1], parts[2]) : new(null, parts[0], parts[1]);
