@@ -18,7 +18,7 @@ namespace PowNet.Test.Models
 
             var token = u.Tokenize();
             token.Should().NotBeNullOrEmpty();
-            var json = token.Decode(PowNetConfiguration.EncryptionSecret);
+            var json = token.DecryptAesGcm(PowNetConfiguration.EncryptionSecret);
             json.Should().Contain("u");
         }
 

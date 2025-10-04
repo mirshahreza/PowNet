@@ -67,7 +67,7 @@ namespace PowNet.Models
         {
             var tokenObject = actor.ToTokenVersion();
             var jsonString = System.Text.Json.JsonSerializer.Serialize(tokenObject);
-            return jsonString.Encode(PowNetConfiguration.EncryptionSecret);
+            return jsonString.EncryptAesGcm(PowNetConfiguration.EncryptionSecret);
         }
 
         public static UserTokenObject ToTokenVersion(this UserServerObject actor)

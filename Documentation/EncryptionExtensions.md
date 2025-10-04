@@ -2,7 +2,6 @@
 
 Unified cryptographic helper collection covering:
 - Modern symmetric authenticated encryption (AES-256-GCM)
-- Legacy AES-CBC compatibility (Encode/Decode)
 - RSA key pair generation, encryption/decryption, signing/verification
 - Hashing (SHA-256 / SHA-512) & HMAC-SHA256
 - PBKDF2-based key derivation + secure random utilities
@@ -14,106 +13,66 @@ Unified cryptographic helper collection covering:
 ## Method Reference
 
 ### EncryptAesGcm(this string plaintext, string key)
-Performs AES-256-GCM encryption (random 96-bit nonce, 128-bit tag). Output Base64 = nonce || ciphertext || tag.
+AES-256-GCM encryption (random 96-bit nonce, 128-bit tag). Output Base64 = nonce || ciphertext || tag.
 ```csharp
 string cipher = "Sensitive".EncryptAesGcm("passphrase");
 ```
-Throws `PowNetSecurityException` on invalid input or failure.
 
 ### DecryptAesGcm(this string ciphertext, string key)
-Reverses `EncryptAesGcm`; validates tag integrity.
+Reverse of `EncryptAesGcm`; validates tag integrity.
 ```csharp
 string plain = cipher.DecryptAesGcm("passphrase");
 ```
 
-### Encode(this string plaintext, string key)
-Legacy AES-CBC (PKCS7) with random IV (Base64 output = IV || ciphertext).
-```csharp
-string legacy = "Hello".Encode("key123");
-```
-
-### Decode(this string ciphertext, string key)
-Decrypts legacy AES-CBC payload.
-```csharp
-string again = legacy.Decode("key123");
-```
-
 ### GenerateRSAKeyPair(int keySize = 2048)
-Creates new RSA keys (raw DER bytes exported Base64). Returns `RSAKeyPair`.
+Creates new RSA keys (DER exported, Base64). Returns `RSAKeyPair`.
 ```csharp
 var pair = EncryptionExtensions.GenerateRSAKeyPair(3072);
 ```
 
-### EncryptRSA(this string plaintext, string publicKey)
-Encrypts using OAEP SHA-256.
+### EncryptRSA / DecryptRSA
+Envelope encryption using OAEP SHA-256.
 ```csharp
-string enc = "secret".EncryptRSA(pair.PublicKey);
-```
-
-### DecryptRSA(this string ciphertext, string privateKey)
-Decrypts OAEP encrypted data.
-```csharp
+string enc = message.EncryptRSA(pair.PublicKey);
 string dec = enc.DecryptRSA(pair.PrivateKey);
 ```
 
-### SignRSA(this string data, string privateKey)
-Produces Base64 PKCS#1 v1.5 SHA-256 signature.
+### SignRSA / VerifyRSASignature
+PKCS#1 v1.5 SHA-256 signature operations.
 ```csharp
-string sig = "payload".SignRSA(pair.PrivateKey);
+string sig = payload.SignRSA(pair.PrivateKey);
+bool ok = payload.VerifyRSASignature(sig, pair.PublicKey);
 ```
 
-### VerifyRSASignature(this string data, this string signature, string publicKey)
-Returns true if signature valid (false on any exception).
+### ComputeSHA256 / ComputeSHA512
+Base64 hash of UTF8 bytes.
 ```csharp
-bool ok = "payload".VerifyRSASignature(sig, pair.PublicKey);
+string h256 = data.ComputeSHA256();
 ```
 
-### ComputeSHA256(this string input) / ComputeSHA512(this string input)
-Returns Base64 hash of UTF8 bytes.
-```csharp
-string h256 = "data".ComputeSHA256();
-```
-
-### ComputeHMAC(this string input, string key)
-HMAC-SHA256 using derived key (PBKDF2 output 32 bytes).
+### ComputeHMAC / VerifyHMAC
+HMAC-SHA256 using derived key material.
 ```csharp
 string mac = body.ComputeHMAC("hmac-secret");
-```
-
-### VerifyHMAC(this string input, this string signature, string key)
-Constant-time comparison of computed vs supplied HMAC.
-```csharp
 bool valid = body.VerifyHMAC(mac, "hmac-secret");
 ```
 
-### DeriveKey(string password, int keyLength, byte[]? salt = null, int iterations = 100000)
-PBKDF2 (SHA-256). **Use unique salt per password/secret in production**.
+### DeriveKey(password, length, salt?, iterations)
+PBKDF2 SHA-256. Provide unique salt per secret.
 ```csharp
 byte[] keyMaterial = EncryptionExtensions.DeriveKey("pwd", 32, EncryptionExtensions.GenerateRandomBytes(16));
 ```
 
-### GenerateRandomBytes(int length)
-Cryptographically secure random bytes.
+### GenerateRandomBytes / GenerateRandomString
+Cryptographically secure random material.
 ```csharp
-var nonce = EncryptionExtensions.GenerateRandomBytes(12);
+var token = EncryptionExtensions.GenerateRandomString(40);
 ```
 
-### GenerateRandomString(int length, string charset = "A..Za..z0..9")
-Generates random characters (modulo bias acceptable for typical usage).
-```csharp
-string token = EncryptionExtensions.GenerateRandomString(40);
-```
-
-### EncryptFile(string inputFilePath, string outputFilePath, string key)
-AES-GCM file encryption (writes nonce || ciphertext || tag).
+### EncryptFile / DecryptFile
+AES-GCM file encryption (nonce || ciphertext || tag).
 ```csharp
 EncryptionExtensions.EncryptFile("plain.bin", "cipher.bin", "file-key");
-```
-
-### DecryptFile(string inputFilePath, string outputFilePath, string key)
-File decryption counterpart.
-```csharp
-EncryptionExtensions.DecryptFile("cipher.bin", "plain.out", "file-key");
 ```
 
 ---
@@ -133,7 +92,7 @@ string privPem = pair.ExportPrivateKeyPem();
 ```
 
 ### EncryptionContext
-Metadata container (Algorithm / KeyId / Metadata dictionary) for higher-level orchestration (not used internally here).
+Metadata container (Algorithm / KeyId / Metadata dictionary) for higher-level orchestration.
 
 ---
 ## Usage Scenarios
@@ -155,10 +114,10 @@ string decMsg = encMsg.DecryptRSA(keys.PrivateKey);
 ---
 ## Security Guidance
 - Replace static salt with random per-secret salt & store alongside ciphertext.
-- Prefer AES-GCM for new encryption; limit AES-CBC to legacy data migration.
+- Use AES-GCM exclusively for new symmetric encryption (legacy AES-CBC removed).
 - Consider Argon2 or scrypt for password hashing (not in scope here).
-- Monitor crypto API obsolescence (AesGcm constructors with explicit tag size recommended in new .NET versions).
+- Monitor crypto API updates (future .NET versions may expose additional primitives).
 
 ---
 ## Error Handling
-All critical failures throw `PowNetSecurityException` with context parameters (`ErrorType`, etc.) enabling structured logging.
+Methods throw `PowNetSecurityException` with contextual parameters (`ErrorType`, etc.) for structured logging.

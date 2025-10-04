@@ -16,15 +16,6 @@ namespace PowNet.Test.Extensions
         }
 
         [Fact]
-        public void Legacy_Aes_CBC_Should_Work()
-        {
-            var key = "secret";
-            var ct = "world".Encode(key);
-            var pt = ct.Decode(key);
-            pt.Should().Be("world");
-        }
-
-        [Fact]
         public void RSA_Encrypt_Decrypt_And_Sign_Verify()
         {
             var kp = EncryptionExtensions.GenerateRSAKeyPair(2048);
