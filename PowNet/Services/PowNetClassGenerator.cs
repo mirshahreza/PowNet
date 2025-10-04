@@ -4,15 +4,43 @@ using PowNet.Extensions;
 
 namespace PowNet.Services
 {
-    public class PowNetClassGenerator(string className, string namespaceName)
+    public class PowNetClassGenerator
     {
-        private readonly string _tempBody = CSharpTemplates.ClassTemplate.Replace("$Namespace$", namespaceName).Replace("$ClassName$", className);
+        private readonly string _className;
+        private readonly string _namespaceName;
+
+        public PowNetClassGenerator(string className, string namespaceName)
+        {
+            _className = className;
+            _namespaceName = namespaceName;
+            // Minimal default; caller can add more.
+            Usings.Add("using System;");
+        }
+
+        /// <summary>
+        /// Collection of using directives to include at the top of the generated file.
+        /// Populate with full statements ending in semicolon (e.g. "using System.Text.Json;").
+        /// </summary>
+        public HashSet<string> Usings { get; } = new(StringComparer.Ordinal);
 
         public List<string> DbDialogMethods { get; set; } = [];
         public List<string> NotMappedMethods { get; set; } = [];
         public Dictionary<string, List<string>> DbProducerMethods { get; set; } = [];
         public Dictionary<string, List<string>> DbScalarFunctionMethods { get; set; } = [];
         public Dictionary<string, List<string>> DbTableFunctionMethods { get; set; } = [];
+
+        /// <summary>
+        /// Add a using directive (helper ensuring it ends with semicolon).
+        /// </summary>
+        public PowNetClassGenerator AddUsing(string usingDirective)
+        {
+            if (string.IsNullOrWhiteSpace(usingDirective)) return this;
+            var trimmed = usingDirective.Trim();
+            if (!trimmed.EndsWith(";")) trimmed += ";";
+            if (!trimmed.StartsWith("using ")) trimmed = "using " + trimmed;
+            Usings.Add(trimmed);
+            return this;
+        }
 
         public string ToCode()
         {
@@ -22,7 +50,13 @@ namespace PowNet.Services
             foreach (var method in DbProducerMethods) methodsSB.Append(CSharpTemplates.DbProducerTemplate(method.Key, method.Value));
             foreach (var method in DbScalarFunctionMethods) methodsSB.Append(CSharpTemplates.DbScalarFunctionTemplate(method.Key, method.Value));
             foreach (var method in DbTableFunctionMethods) methodsSB.Append(CSharpTemplates.DbTableFunctionTemplate(method.Key, method.Value));
-            return _tempBody.Replace("$Methods$", methodsSB.ToString());
+
+            var usingsBlock = string.Join('\n', Usings.Order());
+            return CSharpTemplates.ClassTemplate
+                .Replace("$Usings$", usingsBlock)
+                .Replace("$Namespace$", _namespaceName)
+                .Replace("$ClassName$", _className)
+                .Replace("$Methods$", methodsSB.ToString());
         }
     }
 
@@ -37,18 +71,14 @@ namespace PowNet.Services
                 if (methodTemplate == MethodTemplate.DbScalarFunction) return CSharpTemplates.DbScalarFunctionTemplate(methodName, InputArgs);
                 if (methodTemplate == MethodTemplate.DbTableFunction) return CSharpTemplates.DbTableFunctionTemplate(methodName, InputArgs);
                 if (methodTemplate == MethodTemplate.NotMapped) return CSharpTemplates.NotMappedTemplate(methodName);
-                return "";
+                return string.Empty;
             }
         }
     }
 
     internal static class CSharpTemplates
     {
-        internal static string ClassTemplate => @"
-using System;
-using System.Text.Json;
-using PowNet;
-using ServIo;
+        internal static string ClassTemplate => @"$Usings$
 
 namespace $Namespace$
 {
@@ -62,7 +92,7 @@ $Methods$
         internal static string DbDialogTemplate(string MethodName)
         {
             return @"
-        public static object? $MethodName$(JsonElement clientQuery, PowNetUser? actor)
+        public static object? $MethodName$(System.Text.Json.JsonElement clientQuery, PowNetUser? actor)
         {
             // Implement dialog logic here (placeholder).
             return null;
@@ -82,8 +112,8 @@ $Methods$
 
         internal static string DbProducerTemplate(string MethodName, List<string>? args)
         {
-            string inputArgs = args == null ? "" : string.Join(", ", args);
-            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName," + inputArgs;
+            string inputArgs = args == null ? string.Empty : string.Join(", ", args);
+            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName, " + inputArgs;
             return @"
         public static object? $MethodName$($InputArgs$)
         {
@@ -95,8 +125,8 @@ $Methods$
 
         internal static string DbScalarFunctionTemplate(string MethodName, List<string>? args)
         {
-            string inputArgs = args == null ? "" : string.Join(", ", args);
-            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName," + inputArgs;
+            string inputArgs = args == null ? string.Empty : string.Join(", ", args);
+            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName, " + inputArgs;
             return @"
         public static object? $MethodName$($InputArgs$)
         {
@@ -108,8 +138,8 @@ $Methods$
 
         internal static string DbTableFunctionTemplate(string MethodName, List<string>? args)
         {
-            string inputArgs = args == null ? "" : string.Join(", ", args);
-            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName," + inputArgs;
+            string inputArgs = args == null ? string.Empty : string.Join(", ", args);
+            inputArgs = inputArgs.Trim().Length == 0 ? "string dbConfigName" : "string dbConfigName, " + inputArgs;
             return @"
         public static object? $MethodName$($InputArgs$)
         {
@@ -121,7 +151,7 @@ $Methods$
 
         internal static string ArgsToSqlArgs(List<string>? args)
         {
-            if (args is null || args.Count == 0) return "";
+            if (args is null || args.Count == 0) return string.Empty;
             List<string> sb = new();
             foreach (string s in args)
             {
@@ -129,7 +159,6 @@ $Methods$
                 if (argParts.Length < 2) continue;
                 sb.Add("{" + argParts[1] + "}");
             }
-
             return string.Join(", ", sb);
         }
     }
