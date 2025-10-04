@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentAssertions;
 using Xunit;
 using PowNet.Extensions;
+using PowNet.Configuration;
 
 namespace PowNet.Test.Extensions
 {
@@ -27,6 +28,7 @@ namespace PowNet.Test.Extensions
         [Fact]
         public void Jwt_Generate_And_Validate_Should_Work()
         {
+            PowNetConfiguration.SetConfigValue("PowNet:EncryptionSecret", "0123456789ABCDEF0123456789ABCDEF");
             var identity = new ClaimsIdentity(new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, "1"),

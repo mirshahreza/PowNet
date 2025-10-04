@@ -19,6 +19,7 @@ namespace PowNet.Test.Services
         [Fact]
         public void ArgsToSqlArgs_And_NeedSingleQuote_Should_Work()
         {
+            // Updated expectation: generator no longer quotes string args, it just emits placeholders
             var list = new List<string> { "int a", "string b" };
             var asm = typeof(PowNetClassGenerator).Assembly;
             var t = asm.GetType("PowNet.Services.CSharpTemplates", throwOnError: true)!;
@@ -26,7 +27,8 @@ namespace PowNet.Test.Services
             method.Should().NotBeNull();
             var s = (string)method!.Invoke(null, new object?[]{ list })!;
             s.Should().Contain("{a}");
-            s.Should().Contain("'{b}'");
+            s.Should().Contain("{b}");
+            s.Should().NotContain("'{b}'");
         }
     }
 }

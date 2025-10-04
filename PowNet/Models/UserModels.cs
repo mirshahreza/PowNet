@@ -1,10 +1,11 @@
 using System.Text.Json.Nodes;
 using PowNet.Configuration;
 using PowNet.Extensions;
+using PowNet.Abstractions.Authentication; // added
 
 namespace PowNet.Models
 {
-    public record UserServerObject
+    public record UserServerObject : IUserIdentity // implement abstraction
     {
         public DateTime GeneratedOn { get; } = DateTime.Now;
         public bool IsPerfect { get; set; } = false;
@@ -14,6 +15,10 @@ namespace PowNet.Models
         public List<Role> Roles { set; get; } = [];
         public List<Action> AllowedActions { set; get; } = [];
         public JsonObject Data { set; get; } = [];
+
+        // IUserIdentity implementation
+        public bool IsAnonymous => Id == 0 || string.Equals(UserName, NobodyUserName, StringComparison.OrdinalIgnoreCase);
+        public bool IsInRole(string roleName) => Roles?.Any(r => string.Equals(r.RoleName, roleName, StringComparison.OrdinalIgnoreCase)) == true;
 
         public static string NobodyUserName { get; } = "nobody";
 

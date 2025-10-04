@@ -4,16 +4,28 @@ using PowNet.Configuration;
 using PowNet.Models;
 using PowNet.Extensions;
 using PowNet.Common;
-using System;
+using PowNet.Abstractions.Api; // added
 
 namespace PowNet.Services
 {
-    public record ApiCallInfo(string RequestPath, string NamespaceName, string ControllerName, string ApiName)
+    public record ApiCallInfo(string RequestPath, string NamespaceName, string ControllerName, string ApiName) : IApiCallInfo
     {
         public string RequestPath { get; set; } = RequestPath;
         public string NamespaceName { get; set; } = NamespaceName;
         public string ControllerName { get; set; } = ControllerName;
         public string ApiName { get; set; } = ApiName;
+
+        // IApiCallInfo members mapping
+        string? IApiCallInfo.Namespace => NamespaceName;
+        string? IApiCallInfo.Controller => ControllerName;
+        string? IApiCallInfo.Action => ApiName;
+        IReadOnlyDictionary<string, string?> IApiCallInfo.RouteValues => _routeValues;
+        private readonly Dictionary<string,string?> _routeValues = new();
+
+        public void AddRouteValue(string key, string? value)
+        {
+            _routeValues[key] = value;
+        }
     }
 
     public static class ApiCallInfoExtensions
@@ -40,7 +52,12 @@ namespace PowNet.Services
                 string controllerName = routeData.Values["controller"].ToStringEmpty();
                 string actionName = routeData.Values["action"].ToStringEmpty();
                 string namespaceName = path.Replace(controllerName, string.Empty).Replace(actionName, string.Empty).Replace("/", string.Empty);
-                return new ApiCallInfo(path, namespaceName, controllerName, actionName);
+                var info = new ApiCallInfo(path, namespaceName, controllerName, actionName);
+                foreach (var kv in routeData.Values)
+                {
+                    info.AddRouteValue(kv.Key, kv.Value?.ToString());
+                }
+                return info;
             }
             catch
             {

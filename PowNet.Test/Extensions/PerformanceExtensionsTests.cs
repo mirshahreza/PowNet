@@ -36,9 +36,11 @@ namespace PowNet.Test.Extensions
         {
             int c = 0;
             Func<int> f = () => ++c;
-            var m = f.MemoizeWithExpiration(TimeSpan.FromMilliseconds(5));
+            var m = f.MemoizeWithExpiration(TimeSpan.FromMilliseconds(60));
             m().Should().Be(1);
-            await Task.Delay(10);
+            await Task.Delay(30); // still cached
+            m().Should().Be(1);
+            await Task.Delay(70); // total ~100ms > 60ms
             m().Should().Be(2);
         }
 

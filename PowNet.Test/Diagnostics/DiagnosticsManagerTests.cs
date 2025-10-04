@@ -1,6 +1,7 @@
 using FluentAssertions;
-using Xunit;
 using PowNet.Diagnostics;
+using PowNet.Configuration;
+using Xunit;
 
 namespace PowNet.Test.Diagnostics
 {
@@ -37,11 +38,22 @@ namespace PowNet.Test.Diagnostics
         }
 
         [Fact]
-        public void ExecuteInDevelopment_Should_NotThrow()
+        public void ExecuteInDevelopment_Should_Return_Value_In_Dev_And_Fallback_Otherwise()
         {
-            DiagnosticsManager.ExecuteInDevelopment(() => { var x = 1+1; });
-            var r = DiagnosticsManager.ExecuteInDevelopment(() => 42, -1);
-            r.Should().BeOneOf(42, -1);
+            var original = PowNetConfiguration.Environment;
+            try
+            {
+                PowNetConfiguration.Environment = "Development";
+                var devVal = DiagnosticsManager.ExecuteInDevelopment(() => 42, -1);
+                devVal.Should().Be(42);
+                PowNetConfiguration.Environment = "Production";
+                var prodVal = DiagnosticsManager.ExecuteInDevelopment(() => 42, -1);
+                prodVal.Should().Be(-1);
+            }
+            finally
+            {
+                PowNetConfiguration.Environment = original;
+            }
         }
 
         [Fact]

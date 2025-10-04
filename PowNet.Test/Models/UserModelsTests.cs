@@ -11,6 +11,7 @@ namespace PowNet.Test.Models
         [Fact]
         public void UserServerObject_Cache_And_Token_Should_Work()
         {
+            PowNetConfiguration.SetConfigValue("PowNet:EncryptionSecret", "0123456789ABCDEF0123456789ABCDEF");
             var u = new UserServerObject { Id = 1, UserName = "u" };
             u.ToCache();
             var cached = UserServerObject.FromCache("u");
