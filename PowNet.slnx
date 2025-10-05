@@ -17,6 +17,9 @@
     <File Path="Documentation/DataMapperExtensions.md" />
     <File Path="Documentation/DataTableExtensions.md" />
     <File Path="Documentation/DateTimeExtensions.md" />
+    <File Path="Documentation/DbIO.Design.md" />
+    <File Path="Documentation/DbIO.md" />
+    <File Path="Documentation/DbIO.Usage.md" />
     <File Path="Documentation/DebugExtensions.md" />
     <File Path="Documentation/DevelopmentExtensions.md" />
     <File Path="Documentation/DevelopmentTools.md" />
