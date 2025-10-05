@@ -15,6 +15,15 @@ namespace PowNet.Extensions
         private static readonly ConcurrentDictionary<string, List<IEventHandler>> _namedHandlers = new();
         private static readonly EventBusOptions _options = new();
 
+        public static void Reset()
+        {
+            _handlers.Clear();
+            _namedHandlers.Clear();
+            _options.UseParallelExecution = true;
+            _options.ContinueOnHandlerError = true;
+            _options.MaxConcurrentHandlers = Environment.ProcessorCount * 2;
+        }
+
         #region Event Publishing
 
         /// <summary>

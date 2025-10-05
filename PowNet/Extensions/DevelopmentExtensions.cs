@@ -252,7 +252,7 @@ namespace PowNet.Extensions
         /// </summary>
         public static CodeQualityReport AnalyzeCodeQuality(Assembly assembly, string? namespaceName = null)
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 return new CodeQualityReport { IsAnalysisSkipped = true };
             }
@@ -281,7 +281,7 @@ namespace PowNet.Extensions
         /// </summary>
         public static List<CodeSmell> DetectCodeSmells(Type type)
         {
-            if (!PowNetConfiguration.IsDevelopment)
+            if (!PowNetConfiguration.IsDevelopment && !AllowInTestContext())
             {
                 return new List<CodeSmell>();
             }

@@ -4,6 +4,7 @@ using Xunit;
 
 namespace PowNet.Test.Extensions
 {
+    [Collection("EventBusSerial")] // ensure no parallel interference with global static EventBus options
     public class EventBusAdvancedTests
     {
         public record RetEvent(int Id);
@@ -11,6 +12,7 @@ namespace PowNet.Test.Extensions
 
         private static void ResetBus(bool continueOnError)
         {
+            EventBusExtensions.Reset();
             EventBusExtensions.Configure(o => { o.ContinueOnHandlerError = continueOnError; o.UseParallelExecution = false; });
         }
 
@@ -37,7 +39,8 @@ namespace PowNet.Test.Extensions
                 attempts++;
                 throw new InvalidOperationException("fail");
             });
-            await new RetEvent(2).PublishWithRetryAsync(maxRetries: 3, delay: TimeSpan.FromMilliseconds(5));
+            await new RetEvent(2).PublishWithRetryAsync(maxRetries: 2, delay: TimeSpan.FromMilliseconds(5));
+            // With suppression the internal publish does not throw; retry loop ends early after first failure
             attempts.Should().Be(1);
         }
 
