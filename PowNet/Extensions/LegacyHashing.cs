@@ -9,7 +9,7 @@ namespace PowNet.Extensions
     /// </summary>
     public static class LegacyHashingExtensions
     {
-        public static string HashMd5(string input)
+        public static string HashMd5(this string input)
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
             using var md5 = MD5.Create();
@@ -17,7 +17,7 @@ namespace PowNet.Extensions
             return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
-        public static string HashMd4(string input)
+        public static string HashMd4(this string input)
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
             var md4 = new Md4Managed();
