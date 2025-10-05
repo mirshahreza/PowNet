@@ -68,9 +68,9 @@ namespace PowNet.Configuration
 
         public static string ClientObjectsPath => Path.Combine(WorkspacePath, "client");
         
-        public static string PowNetPackagesPath => Path.Combine(WorkspacePath, "PowNetpackages");
+        public static string PackagesPath => Path.Combine(WorkspacePath, "packages");
         
-        public static string PowNetPlugins => Path.Combine(WorkspacePath, "plugins");
+        public static string Plugins => Path.Combine(WorkspacePath, "plugins");
 
         public static string LogsPath => GetConfigValue("PowNet:LogsPath", Path.Combine(WorkspacePath, "logs"));
 

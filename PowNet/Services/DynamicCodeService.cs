@@ -46,7 +46,7 @@ namespace PowNet.Services
         {
             get
             {
-                asmPath ??= $"{PowNetConfiguration.PowNetPlugins}/{AsmName}";
+                asmPath ??= $"{PowNetConfiguration.Plugins}/{AsmName}";
                 return asmPath;
             }
         }
@@ -171,7 +171,7 @@ namespace PowNet.Services
 
         public static void Refresh()
         {
-            string[] oldAsmFiles = Directory.GetFiles(PowNetConfiguration.PowNetPlugins, "DynaAsm*");
+            string[] oldAsmFiles = Directory.GetFiles(PowNetConfiguration.Plugins, "DynaAsm*");
             foreach (string oldAsmFile in oldAsmFiles) IOExtensions.TryDelete(oldAsmFile);
             scriptFiles = null;
             asmPath = null;
