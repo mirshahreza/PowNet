@@ -215,8 +215,12 @@ namespace PowNet.Extensions
         public static byte[] DeriveKey(string password, int keyLength, byte[]? salt = null, int iterations = 100000)
         {
             salt ??= Encoding.UTF8.GetBytes("PowNet-Salt");
-            using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
-            return pbkdf2.GetBytes(keyLength);
+            return Rfc2898DeriveBytes.Pbkdf2(
+                Encoding.UTF8.GetBytes(password),
+                salt,
+                iterations,
+                HashAlgorithmName.SHA256,
+                keyLength);
         }
         public static byte[] GenerateRandomBytes(int length)
         {

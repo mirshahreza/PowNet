@@ -23,16 +23,13 @@ namespace PowNet.Extensions
             if (string.IsNullOrEmpty(password))
                 throw new PowNetSecurityException("Password cannot be null or empty");
 
-            // Generate a random salt
-            var salt = new byte[32];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(salt);
-            }
-
-            // Hash the password
-            using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
-            var hash = pbkdf2.GetBytes(32);
+            var salt = RandomNumberGenerator.GetBytes(32);
+            var hash = Rfc2898DeriveBytes.Pbkdf2(
+                Encoding.UTF8.GetBytes(password),
+                salt,
+                iterations,
+                HashAlgorithmName.SHA256,
+                32);
 
             return new HashedPassword
             {
@@ -54,12 +51,14 @@ namespace PowNet.Extensions
             try
             {
                 var salt = Convert.FromBase64String(hashedPassword.Salt);
-                
-                using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, hashedPassword.Iterations, HashAlgorithmName.SHA256);
-                var hash = pbkdf2.GetBytes(32);
-                var computedHash = Convert.ToBase64String(hash);
-
-                return SecureStringCompare(computedHash, hashedPassword.Hash);
+                var expected = Convert.FromBase64String(hashedPassword.Hash);
+                var computed = Rfc2898DeriveBytes.Pbkdf2(
+                    Encoding.UTF8.GetBytes(password),
+                    salt,
+                    hashedPassword.Iterations,
+                    HashAlgorithmName.SHA256,
+                    expected.Length);
+                return SecureStringCompare(Convert.ToBase64String(computed), hashedPassword.Hash);
             }
             catch
             {
@@ -107,7 +106,6 @@ namespace PowNet.Extensions
 
         private static SymmetricSecurityKey GetJwtSigningKey()
         {
-            // Ensure key length is at least 256 bits for HS256
             var secret = PowNetConfiguration.EncryptionSecret;
             var keyBytes = EncryptionExtensions.DeriveKey(secret, 32);
             return new SymmetricSecurityKey(keyBytes);
@@ -224,27 +222,18 @@ namespace PowNet.Extensions
 
         #region Rate Limiting
 
-        /// <summary>
-        /// Check if request is within rate limit
-        /// </summary>
         public static bool IsWithinRateLimit(this string identifier, int maxRequests, TimeSpan window, string? category = null)
         {
             var rateLimiter = RateLimiterManager.GetOrCreate(identifier, category);
             return rateLimiter.IsAllowed(maxRequests, window);
         }
 
-        /// <summary>
-        /// Record a request for rate limiting
-        /// </summary>
         public static void RecordRequest(this string identifier, string? category = null)
         {
             var rateLimiter = RateLimiterManager.GetOrCreate(identifier, category);
             rateLimiter.RecordRequest();
         }
 
-        /// <summary>
-        /// Get remaining requests in current window
-        /// </summary>
         public static int GetRemainingRequests(this string identifier, int maxRequests, TimeSpan window, string? category = null)
         {
             var rateLimiter = RateLimiterManager.GetOrCreate(identifier, category);
@@ -255,99 +244,41 @@ namespace PowNet.Extensions
 
         #region Authorization Helpers
 
-        /// <summary>
-        /// Check if user has required role
-        /// </summary>
-        public static bool HasRole(this ClaimsPrincipal principal, string role)
-        {
-            return principal?.IsInRole(role) == true;
-        }
+        public static bool HasRole(this ClaimsPrincipal principal, string role) => principal?.IsInRole(role) == true;
+        public static bool HasAnyRole(this ClaimsPrincipal principal, params string[] roles) => roles.Any(role => principal?.IsInRole(role) == true);
+        public static bool HasAllRoles(this ClaimsPrincipal principal, params string[] roles) => roles.All(role => principal?.IsInRole(role) == true);
 
-        /// <summary>
-        /// Check if user has any of the required roles
-        /// </summary>
-        public static bool HasAnyRole(this ClaimsPrincipal principal, params string[] roles)
-        {
-            return roles.Any(role => principal?.IsInRole(role) == true);
-        }
+        public static string? GetUserId(this ClaimsPrincipal principal) =>
+            principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+            principal?.FindFirst("sub")?.Value ??
+            principal?.FindFirst("user_id")?.Value;
 
-        /// <summary>
-        /// Check if user has all required roles
-        /// </summary>
-        public static bool HasAllRoles(this ClaimsPrincipal principal, params string[] roles)
-        {
-            return roles.All(role => principal?.IsInRole(role) == true);
-        }
+        public static string? GetUserName(this ClaimsPrincipal principal) =>
+            principal?.FindFirst(ClaimTypes.Name)?.Value ??
+            principal?.FindFirst("username")?.Value ??
+            principal?.FindFirst("preferred_username")?.Value;
 
-        /// <summary>
-        /// Get user ID from claims
-        /// </summary>
-        public static string? GetUserId(this ClaimsPrincipal principal)
-        {
-            return principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                   principal?.FindFirst("sub")?.Value ??
-                   principal?.FindFirst("user_id")?.Value;
-        }
-
-        /// <summary>
-        /// Get username from claims
-        /// </summary>
-        public static string? GetUserName(this ClaimsPrincipal principal)
-        {
-            return principal?.FindFirst(ClaimTypes.Name)?.Value ??
-                   principal?.FindFirst("username")?.Value ??
-                   principal?.FindFirst("preferred_username")?.Value;
-        }
-
-        /// <summary>
-        /// Get email from claims
-        /// </summary>
-        public static string? GetEmail(this ClaimsPrincipal principal)
-        {
-            return principal?.FindFirst(ClaimTypes.Email)?.Value ??
-                   principal?.FindFirst("email")?.Value;
-        }
+        public static string? GetEmail(this ClaimsPrincipal principal) =>
+            principal?.FindFirst(ClaimTypes.Email)?.Value ??
+            principal?.FindFirst("email")?.Value;
 
         #endregion
 
         #region Security Headers
 
-        /// <summary>
-        /// Generate Content Security Policy header
-        /// </summary>
         public static string GenerateCSPHeader(CSPPolicy? policy = null)
         {
             policy ??= CSPPolicy.Default;
-
             var directives = new List<string>();
-
-            if (policy.DefaultSrc.Any())
-                directives.Add($"default-src {string.Join(" ", policy.DefaultSrc)}");
-
-            if (policy.ScriptSrc.Any())
-                directives.Add($"script-src {string.Join(" ", policy.ScriptSrc)}");
-
-            if (policy.StyleSrc.Any())
-                directives.Add($"style-src {string.Join(" ", policy.StyleSrc)}");
-
-            if (policy.ImgSrc.Any())
-                directives.Add($"img-src {string.Join(" ", policy.ImgSrc)}");
-
-            if (policy.ConnectSrc.Any())
-                directives.Add($"connect-src {string.Join(" ", policy.ConnectSrc)}");
-
-            if (policy.FontSrc.Any())
-                directives.Add($"font-src {string.Join(" ", policy.FontSrc)}");
-
-            if (policy.ObjectSrc.Any())
-                directives.Add($"object-src {string.Join(" ", policy.ObjectSrc)}");
-
-            if (policy.MediaSrc.Any())
-                directives.Add($"media-src {string.Join(" ", policy.MediaSrc)}");
-
-            if (policy.FrameSrc.Any())
-                directives.Add($"frame-src {string.Join(" ", policy.FrameSrc)}");
-
+            if (policy.DefaultSrc.Any()) directives.Add($"default-src {string.Join(" ", policy.DefaultSrc)}");
+            if (policy.ScriptSrc.Any()) directives.Add($"script-src {string.Join(" ", policy.ScriptSrc)}");
+            if (policy.StyleSrc.Any()) directives.Add($"style-src {string.Join(" ", policy.StyleSrc)}");
+            if (policy.ImgSrc.Any()) directives.Add($"img-src {string.Join(" ", policy.ImgSrc)}");
+            if (policy.ConnectSrc.Any()) directives.Add($"connect-src {string.Join(" ", policy.ConnectSrc)}");
+            if (policy.FontSrc.Any()) directives.Add($"font-src {string.Join(" ", policy.FontSrc)}");
+            if (policy.ObjectSrc.Any()) directives.Add($"object-src {string.Join(" ", policy.ObjectSrc)}");
+            if (policy.MediaSrc.Any()) directives.Add($"media-src {string.Join(" ", policy.MediaSrc)}");
+            if (policy.FrameSrc.Any()) directives.Add($"frame-src {string.Join(" ", policy.FrameSrc)}");
             return string.Join("; ", directives);
         }
 
@@ -378,15 +309,9 @@ namespace PowNet.Extensions
 
         private static bool SecureStringCompare(string a, string b)
         {
-            if (a.Length != b.Length)
-                return false;
-
+            if (a.Length != b.Length) return false;
             var result = 0;
-            for (int i = 0; i < a.Length; i++)
-            {
-                result |= a[i] ^ b[i];
-            }
-
+            for (int i = 0; i < a.Length; i++) result |= a[i] ^ b[i];
             return result == 0;
         }
 
@@ -394,10 +319,6 @@ namespace PowNet.Extensions
     }
 
     #region Supporting Classes
-
-    /// <summary>
-    /// Represents a hashed password with metadata
-    /// </summary>
     public class HashedPassword
     {
         public string Hash { get; set; } = string.Empty;
@@ -407,9 +328,6 @@ namespace PowNet.Extensions
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Content Security Policy configuration
-    /// </summary>
     public class CSPPolicy
     {
         public List<string> DefaultSrc { get; set; } = new();
@@ -449,84 +367,46 @@ namespace PowNet.Extensions
         };
     }
 
-    /// <summary>
-    /// Rate limiter for tracking request rates
-    /// </summary>
     public class RateLimiter
     {
         private readonly Queue<DateTime> _requests = new();
         private readonly object _lock = new();
-
         public bool IsAllowed(int maxRequests, TimeSpan window)
         {
             lock (_lock)
             {
                 var cutoff = DateTime.UtcNow - window;
-                
-                // Remove old requests
-                while (_requests.Count > 0 && _requests.Peek() < cutoff)
-                {
-                    _requests.Dequeue();
-                }
-
+                while (_requests.Count > 0 && _requests.Peek() < cutoff) _requests.Dequeue();
                 return _requests.Count < maxRequests;
             }
         }
-
-        public void RecordRequest()
-        {
-            lock (_lock)
-            {
-                _requests.Enqueue(DateTime.UtcNow);
-            }
-        }
-
+        public void RecordRequest() { lock (_lock) { _requests.Enqueue(DateTime.UtcNow); } }
         public int GetRemainingRequests(int maxRequests, TimeSpan window)
         {
             lock (_lock)
             {
                 var cutoff = DateTime.UtcNow - window;
-                
-                // Remove old requests
-                while (_requests.Count > 0 && _requests.Peek() < cutoff)
-                {
-                    _requests.Dequeue();
-                }
-
+                while (_requests.Count > 0 && _requests.Peek() < cutoff) _requests.Dequeue();
                 return Math.Max(0, maxRequests - _requests.Count);
             }
         }
     }
 
-    /// <summary>
-    /// Manages rate limiters by identifier
-    /// </summary>
     public static class RateLimiterManager
     {
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, RateLimiter> _limiters = new();
-
         public static RateLimiter GetOrCreate(string identifier, string? category = null)
         {
             var key = category != null ? $"{category}:{identifier}" : identifier;
             return _limiters.GetOrAdd(key, _ => new RateLimiter());
         }
-
         public static void Remove(string identifier, string? category = null)
         {
             var key = category != null ? $"{category}:{identifier}" : identifier;
             _limiters.TryRemove(key, out _);
         }
-
-        public static void Clear()
-        {
-            _limiters.Clear();
-        }
-
-        public static int GetActiveLimitersCount()
-        {
-            return _limiters.Count;
-        }
+        public static void Clear() => _limiters.Clear();
+        public static int GetActiveLimitersCount() => _limiters.Count;
     }
-
     #endregion
 }

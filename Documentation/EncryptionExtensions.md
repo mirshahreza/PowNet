@@ -4,7 +4,7 @@ Unified cryptographic helper collection covering:
 - Modern symmetric authenticated encryption (AES-256-GCM)
 - RSA key pair generation, encryption/decryption, signing/verification
 - Hashing (SHA-256 / SHA-512) & HMAC-SHA256
-- PBKDF2-based key derivation + secure random utilities
+- PBKDF2-based key derivation (static `Rfc2898DeriveBytes.Pbkdf2` API) + secure random utilities
 - File-level AES-GCM encryption/decryption
 
 > WARNING: Default PBKDF2 salt is static for convenience and MUST be replaced with unique random salt per secret in production. Persist salt & iterations alongside ciphertext.
@@ -58,7 +58,7 @@ bool valid = body.VerifyHMAC(mac, "hmac-secret");
 ```
 
 ### DeriveKey(password, length, salt?, iterations)
-PBKDF2 SHA-256. Provide unique salt per secret.
+PBKDF2 SHA-256 (static .NET API). Provide unique salt per secret.
 ```csharp
 byte[] keyMaterial = EncryptionExtensions.DeriveKey("pwd", 32, EncryptionExtensions.GenerateRandomBytes(16));
 ```

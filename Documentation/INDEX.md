@@ -17,6 +17,7 @@ Central index for all individual component documents.
 - [AdvancedSecurityTools](AdvancedSecurityTools.md)
 - [SecurityExtensions](SecurityExtensions.md)
 - [EncryptionExtensions](EncryptionExtensions.md)
+- [ModernHashExtensions](ModernHashExtensions.md)
 - [SecurityMiddleware](SecurityMiddleware.md)
 
 ## Development & Diagnostics
