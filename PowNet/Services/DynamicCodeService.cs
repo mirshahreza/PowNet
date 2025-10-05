@@ -26,7 +26,7 @@ namespace PowNet.Services
         {
             get
             {
-                scriptFiles ??= [.. new DirectoryInfo(PowNetConfiguration.ServerObjectsPath).GetFilesRecursive("*.cs")];
+                scriptFiles ??= [.. new DirectoryInfo(PowNetConfiguration.ServerPath).GetFilesRecursive("*.cs")];
                 return scriptFiles;
             }
         }
@@ -46,7 +46,7 @@ namespace PowNet.Services
         {
             get
             {
-                asmPath ??= $"{PowNetConfiguration.Plugins}/{AsmName}";
+                asmPath ??= $"{PowNetConfiguration.PluginsPath}/{AsmName}";
                 return asmPath;
             }
         }
@@ -171,7 +171,7 @@ namespace PowNet.Services
 
         public static void Refresh()
         {
-            string[] oldAsmFiles = Directory.GetFiles(PowNetConfiguration.Plugins, "DynaAsm*");
+            string[] oldAsmFiles = Directory.GetFiles(PowNetConfiguration.PluginsPath, "DynaAsm*");
             foreach (string oldAsmFile in oldAsmFiles) IOExtensions.TryDelete(oldAsmFile);
             scriptFiles = null;
             asmPath = null;

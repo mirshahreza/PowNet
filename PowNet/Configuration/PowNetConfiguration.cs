@@ -62,15 +62,15 @@ namespace PowNet.Configuration
 
         public static string WorkspacePath => GetConfigValue("PowNet:WorkspacePath", "workspace");
 
-        public static string ServerObjectsPath => Path.Combine(WorkspacePath, "server");
+        public static string ServerPath => Path.Combine(WorkspacePath, "server");
 
         public static string ApiCallsPath => Path.Combine(WorkspacePath, "apicalls");
 
-        public static string ClientObjectsPath => Path.Combine(WorkspacePath, "client");
+        public static string ClientPath => Path.Combine(WorkspacePath, "client");
         
         public static string PackagesPath => Path.Combine(WorkspacePath, "packages");
         
-        public static string Plugins => Path.Combine(WorkspacePath, "plugins");
+        public static string PluginsPath => Path.Combine(WorkspacePath, "plugins");
 
         public static string LogsPath => GetConfigValue("PowNet:LogsPath", Path.Combine(WorkspacePath, "logs"));
 
@@ -611,7 +611,7 @@ namespace PowNet.Configuration
             var paths = new Dictionary<string, string>
             {
                 ["WorkspacePath"] = WorkspacePath,
-                ["ServerObjectsPath"] = ServerObjectsPath,
+                ["ServerObjectsPath"] = ServerPath,
                 ["LogsPath"] = LogsPath,
                 ["TempPath"] = TempPath,
                 ["BackupPath"] = BackupPath
