@@ -1,6 +1,6 @@
-# PowNet Data Layer (DbIO)
+# PowNet Data Layer (DbCommandExecutor)
 
-This document describes the data access layer built around the abstract `DbIO` facade. The current implementation includes `DbIOMsSql` (SQL Server provider). The design focuses on a thin, extensible, provider?agnostic execution surface over ADO.NET.
+This document describes the data access layer built around the abstract `DbCommandExecutor` facade (previously `DbIO`). The current implementation includes `DbCommandExecutorMsSql` (SQL Server provider). The design focuses on a thin, extensible, provider?agnostic execution surface over ADO.NET.
 
 ## Design Goals
 - Single, consistent execution pipeline (sync + async)
@@ -8,9 +8,9 @@ This document describes the data access layer built around the abstract `DbIO` f
 - Extensible hooks for logging / metrics (`OnBeforeExecute`, `OnAfterExecute`)
 - Lightweight transaction handling (Begin / Commit / Rollback)
 - Easy provider extension (minimal abstract surface)
-- Backward compatibility with DataTable / DataSet usage while enabling modern patterns later
+- Backward compatibility via obsolete shim class `DbIO`
 
-## Core Class: `DbIO`
+## Core Class: `DbCommandExecutor`
 Features:
 - Connection management with lazy open safeguard (`EnsureConnectionOpen`)
 - Generic execution wrappers: `Execute<T>` / `ExecuteAsync<T>` (stopwatch + hooks + error wrap)
@@ -20,18 +20,18 @@ Features:
   - Convenience aliases: `ExecuteScalar`, `ExecuteNonQuery`, `ExecuteDataTable` (+ async variants)
 - Transaction state tracking via private `_transaction` and `InTransaction`
 - Parameter serialization for diagnostics (truncates long values >256 chars)
-- Abstract SQL template surface for provider specialization
+- Provider specific creation via static `DbCommandExecutor.Instance(...)`
 
 ### Execution Hooks
 ```csharp
-using var db = DbIO.Instance("DefaultConnection");
+using var db = DbCommandExecutor.Instance("DefaultConnection");
 db.OnBeforeExecute = cmd => logger.LogInformation("SQL => {Sql}", cmd.CommandText);
 db.OnAfterExecute  = (cmd, elapsed) => metrics.Timer("sql.exec").Record(elapsed);
 ```
 
 ### Transactions
 ```csharp
-using var db = DbIO.Instance();
+using var db = DbCommandExecutor.Instance();
 try
 {
     db.BeginTransaction();
@@ -53,19 +53,18 @@ int affected = await db.ExecuteNonQueryAsync(
     new(){ db.CreateParameter("@Id","Int",null,7) });
 ```
 
-## Provider: `DbIOMsSql`
+## Provider: `DbCommandExecutorMsSql`
 Responsibilities:
 - Create and open a `SqlConnection`
 - Build `SqlCommand` and auto?inject missing parameters discovered in the SQL text
-- Supply SQL templates per `QueryType` (Create / Read / Update / Delete / Functions / Procedures)
-- Translate database parameter metadata to C# method signature fragments (`DbParamToCSharpInputParam`)
-- Compile where comparison clauses (StartsWith, EndsWith, Contains, etc.)
+- (Legacy note: if templates existed, would supply CRUD templates)
+- Parameter creation convenience
 
 ## Adding a New Provider (e.g., PostgreSQL)
-1. Implement subclass (e.g., `DbIOPostgres`).
-2. Override abstract members: connection, command, adapter, parameter creation; template retrieval; clause compiler; parameter signature mapping.
-3. Add provider case to `DbIO.Instance`.
-4. Add focused tests (pattern from `DbIOTests`).
+1. Implement subclass (e.g., `DbCommandExecutorPostgres`).
+2. Override abstract members: connection, command, adapter, parameter creation.
+3. Add provider case to `DbCommandExecutor.Instance`.
+4. Add focused tests (pattern from `DbCommandExecutorTests`).
 
 ## Error Wrapping
 Codes like `ToNonQueryFailed`, `ToScalarFailed` embed:
@@ -82,7 +81,7 @@ var roles = tables["Roles"]; // DataTable
 ```
 
 ## Backlog / Future Enhancements
-- `IDbIO` interface for DI
+- `IDbCommandExecutor` interface for DI
 - Streaming reader helper: `ExecuteReaderFunc(Func<DbDataReader,T>)`
 - Parameter normalization helpers
 - Template caching (`ConcurrentDictionary`)
@@ -100,4 +99,4 @@ Fake ADO.NET types validate:
 - Disposal (connection closed, transaction cleared)
 
 ---
-Document auto?generated for PowNet Data layer.
+Document updated after renaming from DbIO to DbCommandExecutor.

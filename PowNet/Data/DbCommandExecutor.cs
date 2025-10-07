@@ -1,3 +1,7 @@
+using Microsoft.Data.SqlClient;
+using PowNet.Common;
+using PowNet.Configuration;
+using PowNet.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -6,17 +10,13 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using PowNet.Common;
-using PowNet.Configuration;
-using PowNet.Extensions;
 
 namespace PowNet.Data
 {
     /// <summary>
-    /// Abstract database IO facade. Provides common CRUD execution helpers. Concrete providers inherit (see DbIOMsSql).
-    /// Now includes: execution wrapper, logging hooks, async variants, transaction helpers, and safer connection handling.
+    /// Database command executor facade (previously DbIO). Provides CRUD helpers, execution wrappers, logging hooks, async variants, transaction helpers, and safe connection handling.
     /// </summary>
-    public abstract class DbIO : IDisposable, IAsyncDisposable
+    public class DbCommandExecutor : IDisposable, IAsyncDisposable
     {
         private readonly DbConnection _dbConnection;
         private DbTransaction? _transaction;
@@ -34,10 +34,10 @@ namespace PowNet.Data
         /// </summary>
         public Action<DbCommand, TimeSpan>? OnAfterExecute { get; set; }
 
-        protected DbIO(DatabaseConfiguration dbConf)
+        protected DbCommandExecutor(DatabaseConfiguration dbConf)
         {
             DbConf = dbConf;
-            _dbConnection = CreateConnection(); // provider decides whether to open immediately
+            _dbConnection = CreateConnection(); // virtual for test substitution
             EnsureConnectionOpen();
         }
 
@@ -60,15 +60,12 @@ namespace PowNet.Data
         }
 
         #region Factory
-        public static DbIO Instance(DatabaseConfiguration dbConf) => dbConf.ServerType switch
+        public static DbCommandExecutor Instance(DatabaseConfiguration dbConf)
         {
-            ServerType.MsSql => new DbIOMsSql(dbConf),
-            _ => throw new PowNetException("DbServerTypeNotImplementedYet", System.Reflection.MethodBase.GetCurrentMethod())
-                    .AddParam("ServerType", dbConf.ServerType)
-                    .GetEx()
-        };
+            return new DbCommandExecutor(dbConf);
+        }
 
-        public static DbIO Instance(string connectionName = "DefaultConnection")
+        public static DbCommandExecutor Instance(string connectionName = "DefaultConnection")
             => Instance(DatabaseConfiguration.FromSettings(connectionName));
         #endregion
 
@@ -236,7 +233,7 @@ namespace PowNet.Data
         {
             try
             {
-                using DbIO dbIO = Instance(dbConf);
+                using DbCommandExecutor dbIO = Instance(dbConf);
                 return dbIO._dbConnection.State == ConnectionState.Open;
             }
             catch (Exception ex)
@@ -282,11 +279,57 @@ namespace PowNet.Data
         }
         #endregion
 
-        #region Abstract Members
-        public abstract DbConnection CreateConnection();
-        public abstract DbCommand CreateDbCommand(string commandText, DbConnection dbConnection, List<DbParameter>? dbParameters = null);
-        public abstract DataAdapter CreateDataAdapter(DbCommand dbCommand);
-        public abstract DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null);
+        #region Virtual / Overridable Members
+        public virtual DbConnection CreateConnection()
+        {
+            DbConnection dbConnection = new SqlConnection(DbConf.ConnectionString);
+            dbConnection.Open();
+            return dbConnection;
+        }
+        public virtual DataAdapter CreateDataAdapter(DbCommand dbCommand)
+            => new SqlDataAdapter((SqlCommand)dbCommand);
+
+        /// <summary>
+        /// Generic command creation. Providers can override for advanced behaviors (e.g., auto parameter inference).
+        /// </summary>
+        public virtual DbCommand CreateDbCommand(string commandText, DbConnection dbConnection, List<DbParameter>? dbParameters = null)
+        {
+            List<string> paramsInSql = commandText.ExtractSqlParameters();
+            List<string> notExistParams = [.. paramsInSql.Where(i => dbParameters?.FirstOrDefault(p => p.ParameterName.EqualsIgnoreCase(i)) == null)];
+            if (notExistParams.Count > 0)
+            {
+                dbParameters ??= [];
+                foreach (string p in notExistParams)
+                    if (!p.EqualsIgnoreCase("InsertedTable") && !p.EqualsIgnoreCase("MasterId")) dbParameters.Add(CreateParameter(p, nameof(SqlDbType.NVarChar), 4000, null));
+            }
+            SqlCommand sqlCommand = new(commandText, (SqlConnection)dbConnection);
+            if (dbParameters is not null && dbParameters.Count > 0) sqlCommand.Parameters.AddRange(dbParameters.ToArray());
+            return sqlCommand;
+        }
+
+        /// <summary>
+        /// Generic parameter creation using underlying provider command. Attempts to map string type to DbType.
+        /// </summary>
+        public virtual DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null)
+        {
+            EnsureConnectionOpen();
+            using var tmpCmd = _dbConnection.CreateCommand();
+            var p = tmpCmd.CreateParameter();
+            p.ParameterName = columnName;
+            if (!string.IsNullOrWhiteSpace(columnType) && Enum.TryParse<DbType>(columnType, true, out var dbType))
+            {
+                p.DbType = dbType;
+            }
+            if (columnSize.HasValue) p.Size = columnSize.Value;
+            p.Value = value ?? DBNull.Value;
+            return p;
+
+            //SqlParameter op = new() { IsNullable = true, ParameterName = columnName, SqlDbType = Enum.Parse<SqlDbType>(columnType, true) };
+            //if (columnSize is not null) op.Size = (int)columnSize;
+            //op.Value = value is null ? DBNull.Value : value;
+            //return op;
+
+        }
         #endregion
 
         #region Dispose
@@ -313,7 +356,14 @@ namespace PowNet.Data
             Dispose(true); // no truly async disposal needed for DbConnection normally
             await Task.CompletedTask;
         }
-        ~DbIO() => Dispose(false);
+        ~DbCommandExecutor() => Dispose(false);
         #endregion
+    }
+
+    [Obsolete("Use DbCommandExecutor instead of DbIO", false)]
+    public abstract class DbIO : DbCommandExecutor
+    {
+        protected DbIO(DatabaseConfiguration dbConf) : base(dbConf) { }
+        public static new DbIO Instance(DatabaseConfiguration dbConf) => throw new PowNetException("DbIORenamed", System.Reflection.MethodBase.GetCurrentMethod()).AddParam("Use", nameof(DbCommandExecutor)).GetEx();
     }
 }

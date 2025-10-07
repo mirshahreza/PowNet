@@ -1,8 +1,8 @@
-# DbIO Usage
+# DbCommandExecutor Usage
 
 ## Scalar Query
 ```csharp
-using var db = DbIO.Instance("DefaultConnection");
+using var db = DbCommandExecutor.Instance("DefaultConnection");
 int total = Convert.ToInt32(db.ExecuteScalar("SELECT COUNT(1) FROM Users") ?? 0);
 ```
 
@@ -62,13 +62,22 @@ catch (Exception ex) { /* ex.Message includes failure code + query */ }
 
 ## Provider Skeleton
 ```csharp
-public sealed class DbIOPostgres : DbIO
+public sealed class DbCommandExecutorPostgres : DbCommandExecutor
 {
-    public DbIOPostgres(DatabaseConfiguration c) : base(c) {}
+    public DbCommandExecutorPostgres(DatabaseConfiguration c) : base(c) {}
     public override DbConnection CreateConnection() => new NpgsqlConnection(DbConf.ConnectionString);
-    // implement other abstract members...
+    public override DbCommand CreateDbCommand(string sql, DbConnection conn, List<DbParameter>? ps = null)
+    {
+        var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        if (ps is { Count: >0 }) foreach (var p in ps) cmd.Parameters.Add(p);
+        return cmd;
+    }
+    public override DataAdapter CreateDataAdapter(DbCommand dbCommand) => throw new NotImplementedException();
+    public override DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null)
+        => new Npgsql.NpgsqlParameter(columnName, value ?? DBNull.Value);
 }
 ```
 
 ---
-Usage reference.
+Usage reference (renamed from DbIO).
