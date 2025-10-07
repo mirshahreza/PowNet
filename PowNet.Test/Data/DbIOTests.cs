@@ -167,8 +167,6 @@ namespace PowNet.Test.Data
         public override string GetOrderSqlTemplate() => string.Empty;
         public override string GetLeftJoinSqlTemplate() => string.Empty;
         public override string GetTranBlock() => string.Empty;
-        public override string CompileWhereCompareClause(CompareClause whereCompareClause, string source, string columnFullName, string dbParamName, string dbType) => string.Empty;
-        public override string DbParamToCSharpInputParam(DbParam dbParam) => string.Empty;
     }
 
     // Tests -------------------------------------------------------------------

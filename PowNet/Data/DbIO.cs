@@ -293,8 +293,6 @@ namespace PowNet.Data
         public abstract string GetOrderSqlTemplate();
         public abstract string GetLeftJoinSqlTemplate();
         public abstract string GetTranBlock();
-        public abstract string CompileWhereCompareClause(CompareClause whereCompareClause, string source, string columnFullName, string dbParamName, string dbType);
-        public abstract string DbParamToCSharpInputParam(DbParam dbParam);
         #endregion
 
         #region Dispose
