@@ -161,12 +161,6 @@ namespace PowNet.Test.Data
         }
         public override DataAdapter CreateDataAdapter(DbCommand dbCommand) => new FakeDataAdapter();
         public override DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null) => new FakeParameter { ParameterName = columnName, Value = value };
-        public override string GetSqlTemplate(QueryType dbQueryType, bool isForSubQuery = false) => string.Empty;
-        public override string GetPaginationSqlTemplate() => string.Empty;
-        public override string GetGroupSqlTemplate() => string.Empty;
-        public override string GetOrderSqlTemplate() => string.Empty;
-        public override string GetLeftJoinSqlTemplate() => string.Empty;
-        public override string GetTranBlock() => string.Empty;
     }
 
     // Tests -------------------------------------------------------------------

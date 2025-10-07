@@ -287,12 +287,6 @@ namespace PowNet.Data
         public abstract DbCommand CreateDbCommand(string commandText, DbConnection dbConnection, List<DbParameter>? dbParameters = null);
         public abstract DataAdapter CreateDataAdapter(DbCommand dbCommand);
         public abstract DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null);
-        public abstract string GetSqlTemplate(QueryType dbQueryType, bool isForSubQuery = false);
-        public abstract string GetPaginationSqlTemplate();
-        public abstract string GetGroupSqlTemplate();
-        public abstract string GetOrderSqlTemplate();
-        public abstract string GetLeftJoinSqlTemplate();
-        public abstract string GetTranBlock();
         #endregion
 
         #region Dispose
