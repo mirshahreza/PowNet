@@ -360,10 +360,4 @@ namespace PowNet.Data
         #endregion
     }
 
-    [Obsolete("Use DbCommandExecutor instead of DbIO", false)]
-    public abstract class DbIO : DbCommandExecutor
-    {
-        protected DbIO(DatabaseConfiguration dbConf) : base(dbConf) { }
-        public static new DbIO Instance(DatabaseConfiguration dbConf) => throw new PowNetException("DbIORenamed", System.Reflection.MethodBase.GetCurrentMethod()).AddParam("Use", nameof(DbCommandExecutor)).GetEx();
-    }
 }
