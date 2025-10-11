@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using PowNet.Common;
-using PowNet.Extensions;
 
 namespace PowNet.Extensions
 {

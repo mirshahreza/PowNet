@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using PowNet.Configuration;
 using PowNet.Logging;
 using PowNet.Common;

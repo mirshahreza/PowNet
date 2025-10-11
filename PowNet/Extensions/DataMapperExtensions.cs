@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Linq.Expressions;
-using PowNet.Common;
 using PowNet.Logging;
 
 namespace PowNet.Extensions

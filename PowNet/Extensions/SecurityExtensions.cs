@@ -1,9 +1,6 @@
 using System.Text.RegularExpressions;
-using System.Text;
-using System.Security.Cryptography;
 using System.Net;
 using PowNet.Common;
-using System.Buffers; // for potential future buffer ops
 
 namespace PowNet.Extensions
 {

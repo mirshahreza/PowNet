@@ -1,6 +1,5 @@
 using System.Text;
 using PowNet.Common;
-using PowNet.Extensions;
 
 namespace PowNet.Services
 {

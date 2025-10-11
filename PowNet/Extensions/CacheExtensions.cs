@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using PowNet.Configuration;
-using PowNet.Common;
 using PowNet.Logging;
 
 namespace PowNet.Extensions

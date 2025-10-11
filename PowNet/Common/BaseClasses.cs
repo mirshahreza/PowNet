@@ -1,7 +1,4 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using PowNet.Extensions;
-using PowNet.Common;
 
 namespace PowNet.Common
 {

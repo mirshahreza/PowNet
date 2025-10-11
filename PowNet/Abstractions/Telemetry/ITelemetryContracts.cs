@@ -1,5 +1,3 @@
-using System;
-
 namespace PowNet.Abstractions.Telemetry
 {
     public interface ITelemetrySpan : IDisposable

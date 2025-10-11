@@ -1,5 +1,4 @@
 using System.Data;
-using PowNet.Extensions;
 
 namespace PowNet.Extensions
 {

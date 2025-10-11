@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using System.Net;
 using System.Text.Json;
-using PowNet.Common;
 using PowNet.Extensions;
 
 namespace PowNet.Security

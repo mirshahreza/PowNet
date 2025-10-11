@@ -2,14 +2,10 @@ using Microsoft.Data.SqlClient;
 using PowNet.Common;
 using PowNet.Configuration;
 using PowNet.Extensions;
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PowNet.Data
 {

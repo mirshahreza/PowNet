@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using PowNet.Configuration;
-using PowNet.Common;
 
 namespace PowNet.Logging
 {

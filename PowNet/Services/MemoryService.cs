@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
 using Microsoft.Extensions.Caching.Memory;
-using PowNet.Extensions;
 
 namespace PowNet.Services
 {

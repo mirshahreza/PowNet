@@ -1,5 +1,3 @@
-using System;
-
 namespace PowNet.Abstractions.Utilities
 {
     public interface ISystemClock

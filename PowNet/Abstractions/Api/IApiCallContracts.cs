@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
 using PowNet.Abstractions.Authentication;
 
 namespace PowNet.Abstractions.Api

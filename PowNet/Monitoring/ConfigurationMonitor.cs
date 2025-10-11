@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using PowNet.Common;
 using PowNet.Configuration;
 
 namespace PowNet.Monitoring
