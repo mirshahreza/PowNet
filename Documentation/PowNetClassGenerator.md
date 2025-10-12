@@ -8,7 +8,7 @@ Utility for programmatically generating class source code (static utility classe
 |------|---------|
 | PowNetClassGenerator | Builder for a single static class (methods aggregated from provided lists) |
 | PowNetMethodGenerator | Helper to produce a single method implementation based on `MethodTemplate` |
-| MethodTemplate (enum) | Template selector: `NotMapped, DbProducer, DbScalarFunction, DbTableFunction, DbDialog` |
+| MethodTemplate (enum) | Template selector: `NotMapped, DbProducer, DbScalarFunction, DbTableFunction, JqlModel` |
 
 ---
 ## PowNetClassGenerator Usage
@@ -18,7 +18,7 @@ var gen = new PowNetClassGenerator("UserProcedures", "MyApp.Data")
     .AddUsing("using MyApp.Infrastructure");
 
 // Add dialog methods (names only; body rendered by template)
-gen.DbDialogMethods.AddRange(new[]{ "FindUsers", "GetUserDetails" });
+gen.JqlModelMethods.AddRange(new[]{ "FindUsers", "GetUserDetails" });
 
 // Add scalar function wrapper with arguments ("<type> <name>")
 gen.DbScalarFunctionMethods["GetUserCount"] = new(){ "int userId" };
@@ -41,7 +41,7 @@ The final emitted block is the ordered distinct set of all directives.
 ## Method Templates
 | Template | Generated Signature (Conceptual) | Body Placeholder |
 |----------|----------------------------------|------------------|
-| DbDialog | `object? Name(JsonElement clientQuery, PowNetUser? actor)` | Comment placeholder |
+| JqlModel | `object? Name(JsonElement clientQuery, PowNetUser? actor)` | Comment placeholder |
 | NotMapped | `object? Name(PowNetUser? actor)` | Returns `true` |
 | DbProducer | `object? Name(string dbConfigName, ...args)` | Placeholder for stored proc call |
 | DbScalarFunction | `object? Name(string dbConfigName, ...args)` | Placeholder for scalar fn call |

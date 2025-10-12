@@ -22,7 +22,7 @@ namespace PowNet.Services
         /// </summary>
         public HashSet<string> Usings { get; } = new(StringComparer.Ordinal);
 
-        public List<string> DbDialogMethods { get; set; } = [];
+        public List<string> JqlModelMethods { get; set; } = [];
         public List<string> NotMappedMethods { get; set; } = [];
         public Dictionary<string, List<string>> DbProducerMethods { get; set; } = [];
         public Dictionary<string, List<string>> DbScalarFunctionMethods { get; set; } = [];
@@ -44,7 +44,7 @@ namespace PowNet.Services
         public string ToCode()
         {
             StringBuilder methodsSB = new();
-            foreach (var method in DbDialogMethods) methodsSB.Append(CSharpTemplates.DbDialogTemplate(method));
+            foreach (var method in JqlModelMethods) methodsSB.Append(CSharpTemplates.JqlModelTemplate(method));
             foreach (var method in NotMappedMethods) methodsSB.Append(CSharpTemplates.NotMappedTemplate(method));
             foreach (var method in DbProducerMethods) methodsSB.Append(CSharpTemplates.DbProducerTemplate(method.Key, method.Value));
             foreach (var method in DbScalarFunctionMethods) methodsSB.Append(CSharpTemplates.DbScalarFunctionTemplate(method.Key, method.Value));
@@ -65,7 +65,7 @@ namespace PowNet.Services
         {
             get
             {
-                if (methodTemplate == MethodTemplate.DbDialog) return CSharpTemplates.DbDialogTemplate(methodName);
+                if (methodTemplate == MethodTemplate.JqlMethod) return CSharpTemplates.JqlModelTemplate(methodName);
                 if (methodTemplate == MethodTemplate.DbProducer) return CSharpTemplates.DbProducerTemplate(methodName, InputArgs);
                 if (methodTemplate == MethodTemplate.DbScalarFunction) return CSharpTemplates.DbScalarFunctionTemplate(methodName, InputArgs);
                 if (methodTemplate == MethodTemplate.DbTableFunction) return CSharpTemplates.DbTableFunctionTemplate(methodName, InputArgs);
@@ -88,7 +88,7 @@ $Methods$
 }
 ";
 
-        internal static string DbDialogTemplate(string MethodName)
+        internal static string JqlModelTemplate(string MethodName)
         {
             return @"
         public static object? $MethodName$(System.Text.Json.JsonElement clientQuery, PowNetUser? actor)

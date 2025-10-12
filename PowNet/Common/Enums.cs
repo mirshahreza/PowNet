@@ -35,7 +35,7 @@ namespace PowNet.Common
         DbProducer,
         DbScalarFunction,
         DbTableFunction,
-        DbDialog
+        JqlMethod
     }
 
     [JsonConverter(typeof(JsonStringEnumConverter))]

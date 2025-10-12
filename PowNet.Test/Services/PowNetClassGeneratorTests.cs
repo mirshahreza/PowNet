@@ -15,7 +15,7 @@ namespace PowNet.Test.Services
                 .AddUsing("System.Linq") // normalization test
                 .AddUsing("System.Linq"); // duplicate should be ignored
 
-            gen.DbDialogMethods.Add("RunDialog");
+            gen.JqlModelMethods.Add("RunDialog");
             gen.NotMappedMethods.Add("Ping");
             gen.DbProducerMethods["Proc1"] = new List<string>{"int a", "string b"};
 
@@ -31,7 +31,7 @@ namespace PowNet.Test.Services
         }
 
         [Theory]
-        [InlineData(MethodTemplate.DbDialog)]
+        [InlineData(MethodTemplate.JqlMethod)]
         [InlineData(MethodTemplate.DbProducer)]
         [InlineData(MethodTemplate.DbScalarFunction)]
         [InlineData(MethodTemplate.DbTableFunction)]

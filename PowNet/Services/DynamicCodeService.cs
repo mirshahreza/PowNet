@@ -110,7 +110,7 @@ namespace PowNet.Services
             return fileBody.Contains($"publicstaticobject?{parts.Item3}(");
         }
 
-        public static void CreateMethod(string methodFullName, string methodName, MethodTemplate methodTemplate = MethodTemplate.DbDialog)
+        public static void CreateMethod(string methodFullName, string methodName, MethodTemplate methodTemplate = MethodTemplate.JqlMethod)
         {
             string? filePath = GetClassFilePath(methodFullName);
             string controllerBody = File.ReadAllText(filePath);
