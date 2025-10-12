@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#) [![Tests](https://img.shields.io/badge/tests-395-green.svg)](#) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license) [![Target](https://img.shields.io/badge/.NET-10.0-informational.svg)](#requirements)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#) [![Tests](https://img.shields.io/badge/tests-403-green.svg)](#) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license) [![Target](https://img.shields.io/badge/.NET-10.0-informational.svg)](#requirements)
 
 </div>
 
@@ -15,7 +15,7 @@
 - [Why PowNet?](#why-pownet)
 - [Installation](#installation)
 - [Getting Started](#getting-started)
-- [Data Layer (DbIO)](#data-layer-db-io)
+- [Data Layer (DbCommandExecutor)](#data-layer-dbcommandexecutor)
 - [Performance & Diagnostics](#performance--diagnostics)
 - [Architecture](#architecture)
 - [Examples](#examples)
@@ -32,7 +32,7 @@ PowNet is a lightweight yet comprehensive extension & utility toolkit for buildi
 - Configuration clarity
 - Safe, explicit patterns (logging, retries, structured exceptions)
 
-All modules are covered by unit tests (currently **395 passing tests**).
+All modules are covered by unit tests (currently **403 passing tests**).
 
 ---
 ## Key Features
@@ -43,7 +43,7 @@ All modules are covered by unit tests (currently **395 passing tests**).
 | Security | Hashing helpers, crypto utils, middleware-friendly patterns | `SecurityExtensions`, `AdvancedSecurityTools` |
 | Diagnostics | Performance timers, profiling wrappers, code quality + allocation analysis | `DevelopmentExtensions` |
 | Eventing | In-process event bus with retry, filtering, pipelines, debouncing, aggregation | `EventBusExtensions` |
-| Data Access | Abstract `DbIO` facade + SQL Server provider (`DbIOMsSql`), execution hooks, transactions | See docs below |
+| Data Access | `DbCommandExecutor` facade (formerly `DbIO`) using SqlClient by default, execution hooks, transactions | See docs below |
 | Caching | Simple primitives & cache orchestration patterns | `CacheExtensions` |
 | Code Generation | Extension method, model, configuration & benchmark scaffolding | `DevelopmentTools` |
 | Exceptions | Rich contextual exception builder (`PowNetException`) | Structured metadata |
@@ -97,8 +97,8 @@ int timeout = PowNetConfiguration.GetConfigValue("PowNet:Database:CommandTimeout
 ```
 
 ---
-## Data Layer (Db IO)
-`DbIO` abstracts ADO.NET interaction:
+## Data Layer (DbCommandExecutor)
+`DbCommandExecutor` abstracts ADO.NET interaction (formerly `DbIO`):
 - Execution wrappers (sync & async) with timing + exception enrichment
 - Transaction helpers (`BeginTransaction`, `CommitTransaction`, `RollbackTransaction`)
 - Extensible provider model (add PostgreSQL/MySQL by subclassing `DbIO`)
@@ -163,7 +163,7 @@ Central docs live in the `Documentation/` folder (each feature isolated). Start 
   - [PowNetConfiguration](Documentation/PowNetConfiguration.md)
   - [EventBusExtensions](Documentation/EventBusExtensions.md)
   - [PerformanceExtensions](Documentation/PerformanceExtensions.md)
-  - [DbIO](Documentation/DbIO.md)
+- [DbCommandExecutor](Documentation/DbIO.md)
   - [SecurityExtensions](Documentation/SecurityExtensions.md)
 
 ---

@@ -30,9 +30,9 @@ Central index for all individual component documents.
 - [PowNetException](PowNetException.md)
 
 ## Data Access
-- [DbIO (Overview)](DbIO.md)
-- [DbIO Design](DbIO.Design.md)
-- [DbIO Usage](DbIO.Usage.md)
+- [DbCommandExecutor (Overview)](DbIO.md)
+- [DbCommandExecutor Design](DbIO.Design.md)
+- [DbCommandExecutor Usage](DbIO.Usage.md)
 - [DataMapperExtensions](DataMapperExtensions.md)
 - [DataTableExtensions](DataTableExtensions.md)
 

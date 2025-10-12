@@ -1,6 +1,6 @@
 # PowNet Data Layer (DbCommandExecutor)
 
-This document describes the data access layer built around the abstract `DbCommandExecutor` facade (previously `DbIO`). The current implementation includes `DbCommandExecutorMsSql` (SQL Server provider). The design focuses on a thin, extensible, provider?agnostic execution surface over ADO.NET.
+This document describes the data access layer built around the `DbCommandExecutor` facade (previously `DbIO`). The default implementation uses `Microsoft.Data.SqlClient` (SQL Server). The design focuses on a thin, extensible, provider-agnostic execution surface over ADO.NET.
 
 ## Design Goals
 - Single, consistent execution pipeline (sync + async)
@@ -53,17 +53,16 @@ int affected = await db.ExecuteNonQueryAsync(
     new(){ db.CreateParameter("@Id","Int",null,7) });
 ```
 
-## Provider: `DbCommandExecutorMsSql`
+## Provider: default SqlClient
 Responsibilities:
 - Create and open a `SqlConnection`
-- Build `SqlCommand` and auto?inject missing parameters discovered in the SQL text
-- (Legacy note: if templates existed, would supply CRUD templates)
+- Build `SqlCommand` and auto-inject missing parameters discovered in the SQL text
 - Parameter creation convenience
 
 ## Adding a New Provider (e.g., PostgreSQL)
 1. Implement subclass (e.g., `DbCommandExecutorPostgres`).
 2. Override abstract members: connection, command, adapter, parameter creation.
-3. Add provider case to `DbCommandExecutor.Instance`.
+3. Add provider case to `DbCommandExecutor.Instance` if you centralize creation logic.
 4. Add focused tests (pattern from `DbCommandExecutorTests`).
 
 ## Error Wrapping
@@ -72,7 +71,7 @@ Codes like `ToNonQueryFailed`, `ToScalarFailed` embed:
 - SQL command
 - JSON?like serialized parameters
 
-## DataSet Multi?Result Example
+## DataSet Multi-Result Example
 ```csharp
 var tables = db.ToDataSet(
     "SELECT * FROM Roles; SELECT * FROM Permissions;",
