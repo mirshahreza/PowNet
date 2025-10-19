@@ -25,12 +25,12 @@ namespace PowNet.Test.Services
             var metrics = MemoryService.GetCacheMetrics();
             metrics.TotalHits.Should().Be(2);
             metrics.TotalMisses.Should().Be(1);
-            metrics.TotalSets.Should().BeGreaterOrEqualTo(2);
-            metrics.TotalRemovals.Should().BeGreaterOrEqualTo(1);
+            metrics.TotalSets.Should().BeGreaterThanOrEqualTo(2);
+            metrics.TotalRemovals.Should().BeGreaterThanOrEqualTo(1);
             metrics.HitRatio.Should().BeApproximately(2.0/3.0, 0.5);
 
             metrics.CategoryStats.Should().ContainKey("cat");
-            metrics.ActiveKeysCount.Should().BeGreaterOrEqualTo(1);
+            metrics.ActiveKeysCount.Should().BeGreaterThanOrEqualTo(1);
         }
 
         [Fact]

@@ -78,7 +78,7 @@ namespace PowNet.Test.Extensions
             new SEvent(2).ScheduleEvent(DateTime.UtcNow.AddMilliseconds(120));
             called.Should().Be(0);
             await Task.Delay(400);
-            called.Should().BeGreaterOrEqualTo(1);
+            called.Should().BeGreaterThanOrEqualTo(1);
         }
     }
 }

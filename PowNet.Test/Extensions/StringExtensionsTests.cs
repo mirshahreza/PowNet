@@ -225,7 +225,7 @@ namespace PowNet.Test.Extensions
             res.Should().Be("xx");
             var after = StringPerformanceExtensions.GetPerformanceStats();
             after.Count.Should().BeGreaterThan(before.Count);
-            after.AvgTimeMicroseconds.Should().BeGreaterOrEqualTo(0);
+            after.AvgTimeMicroseconds.Should().BeGreaterThanOrEqualTo(0);
         }
 
         // AdditionalStringExtensions tests

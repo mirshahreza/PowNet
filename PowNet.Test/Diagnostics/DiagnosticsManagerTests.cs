@@ -24,9 +24,9 @@ namespace PowNet.Test.Diagnostics
         public void Memory_Diagnostics_And_GC_Should_Work()
         {
             var md = DiagnosticsManager.GetMemoryDiagnostics();
-            md.TotalMemory.Should().BeGreaterOrEqualTo(0);
+            md.TotalMemory.Should().BeGreaterThanOrEqualTo(0);
             var rep = DiagnosticsManager.ForceGarbageCollection();
-            rep.MemoryBefore.Should().BeGreaterOrEqualTo(rep.MemoryAfter);
+            rep.MemoryBefore.Should().BeGreaterThanOrEqualTo(rep.MemoryAfter);
         }
 
         [Fact]
@@ -62,7 +62,7 @@ namespace PowNet.Test.Diagnostics
             DiagnosticsManager.DebugAssert(true, "ok");
             DiagnosticsManager.DumpObject(new { A = 1 }, "obj");
             var cs = DiagnosticsManager.GetCallStack();
-            cs.TotalFrames.Should().BeGreaterOrEqualTo(0);
+            cs.TotalFrames.Should().BeGreaterThanOrEqualTo(0);
         }
     }
 }

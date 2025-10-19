@@ -17,8 +17,8 @@ namespace PowNet.Test.Extensions
             await Task.Delay(30);
             var v2 = await factory.RefreshBehindAsync(key, TimeSpan.FromMilliseconds(80), refreshThreshold: TimeSpan.FromSeconds(1));
             // In some timing scenarios an eager refresh may occur; ensure no more than 2 factory executions and value monotonic
-            calls.Should().BeLessOrEqualTo(2);
-            v2.Should().BeGreaterOrEqualTo(v1);
+            calls.Should().BeLessThanOrEqualTo(2);
+            v2.Should().BeGreaterThanOrEqualTo(v1);
         }
 
         [Fact]

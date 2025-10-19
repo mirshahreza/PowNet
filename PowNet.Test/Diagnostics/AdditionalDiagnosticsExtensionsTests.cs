@@ -12,7 +12,7 @@ namespace PowNet.Test.Diagnostics
             TimeSpan elapsed;
             var res = ((Func<int>)(() => 42)).Measure(out elapsed);
             res.Should().Be(42);
-            elapsed.Should().BeGreaterOrEqualTo(TimeSpan.Zero);
+            elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
         }
 
         [Fact]
@@ -22,7 +22,7 @@ namespace PowNet.Test.Diagnostics
             Func<Task<int>> fx = async () => { await Task.Delay(5); return 7; };
             var res = await fx.MeasureAsync(t => seen = t);
             res.Should().Be(7);
-            seen.Should().BeGreaterOrEqualTo(TimeSpan.Zero);
+            seen.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
         }
 
         [Fact]

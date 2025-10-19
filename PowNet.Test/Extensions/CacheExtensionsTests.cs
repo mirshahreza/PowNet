@@ -19,7 +19,7 @@ namespace PowNet.Test.Extensions
             a.Should().Be(11);
             b.Should().Be(11);
             // Allow occasional double invocation in highly parallel/fast scenarios; primary guarantee is not >2
-            calls.Should().BeLessOrEqualTo(2);
+            calls.Should().BeLessThanOrEqualTo(2);
 
             var stats = CacheExtensions.GetStatistics();
             (stats.TotalHits + stats.TotalMisses).Should().BeGreaterThan(0);
@@ -35,7 +35,7 @@ namespace PowNet.Test.Extensions
             var b = await f.MultiLevelCacheAsync(key, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(200));
             a.Should().Be(5);
             b.Should().Be(5);
-            calls.Should().BeLessOrEqualTo(2);
+            calls.Should().BeLessThanOrEqualTo(2);
         }
 
         [Fact]
@@ -59,7 +59,7 @@ namespace PowNet.Test.Extensions
             var v1 = await f.RefreshBehindAsync(key, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(0));
             await Task.Delay(40);
             var v2 = await f.RefreshBehindAsync(key, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(0));
-            v2.Should().BeGreaterOrEqualTo(v1);
+            v2.Should().BeGreaterThanOrEqualTo(v1);
         }
 
         [Fact]

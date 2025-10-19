@@ -77,7 +77,7 @@ namespace PowNet.Test.Extensions
             var seq = Enumerable.Range(1, 1000);
             var outSeq = seq.ProcessLarge(x => x+1, 128);
             outSeq.Take(3).Should().Equal(2,3,4);
-            PerformanceExtensions.ForceGarbageCollection().Should().BeGreaterOrEqualTo(0);
+            PerformanceExtensions.ForceGarbageCollection().Should().BeGreaterThanOrEqualTo(0);
         }
 
         [Fact]

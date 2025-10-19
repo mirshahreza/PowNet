@@ -59,7 +59,7 @@ namespace PowNet.Test.Extensions
         {
             EventBusExtensions.Configure(o => { o.UseParallelExecution = false; o.ContinueOnHandlerError = true; });
             var stats = EventBusExtensions.GetStatistics();
-            stats.TotalHandlers.Should().BeGreaterOrEqualTo(0);
+            stats.TotalHandlers.Should().BeGreaterThanOrEqualTo(0);
         }
     }
 }

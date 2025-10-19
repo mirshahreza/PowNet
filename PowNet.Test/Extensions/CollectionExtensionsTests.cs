@@ -266,7 +266,7 @@ namespace PowNet.Test.Extensions
             }, batchSize: 5, maxConcurrency: 2);
 
             processed.OrderBy(x => x).Should().Equal(items);
-            maxObserved.Should().BeLessOrEqualTo(2);
+            maxObserved.Should().BeLessThanOrEqualTo(2);
         }
         #endregion
 
@@ -277,7 +277,7 @@ namespace PowNet.Test.Extensions
             var src = Enumerable.Range(1, 1000);
             var (results, duration, memory) = src.MeasureEnumeration();
             results.Should().Equal(src);
-            duration.Should().BeGreaterOrEqualTo(TimeSpan.Zero);
+            duration.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
             // Memory delta can be negative (GC reclaimed). Just ensure it is a finite value.
             memory.Should().NotBe(long.MinValue);
         }

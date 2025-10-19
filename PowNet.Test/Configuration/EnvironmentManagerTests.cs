@@ -19,7 +19,7 @@ namespace PowNet.Test.Configuration
         public void Env_Specific_Get_Set_And_Detect_Should_Work()
         {
             var v = EnvironmentManager.GetEnvironmentValue("X", 1);
-            v.Should().BeGreaterOrEqualTo(0);
+            v.Should().BeGreaterThanOrEqualTo(0);
             EnvironmentManager.SetEnvironmentValue("X", 2);
 
             var a = EnvironmentManager.IsRunningInAzure(); a.GetType().Should().Be(typeof(bool));

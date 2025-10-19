@@ -652,7 +652,7 @@ namespace PowNet.Test.Extensions
             var result = longString.ToDebugString(maxLength);
 
             // Assert
-            result.Length.Should().BeLessOrEqualTo(maxLength + 10); // Account for quotes and ellipsis
+            result.Length.Should().BeLessThanOrEqualTo(maxLength + 10); // Account for quotes and ellipsis
             result.Should().EndWith("...");
         }
 

@@ -44,7 +44,7 @@ namespace PowNet.Test.Development
             info.Should().NotBeNull();
 
             var report = DevelopmentTools.AnalyzeAssembly(typeof(DevelopmentToolsTests).Assembly);
-            report.Statistics.TotalTypes.Should().BeGreaterOrEqualTo(0);
+            report.Statistics.TotalTypes.Should().BeGreaterThanOrEqualTo(0);
 
             var dt = DevelopmentTools.GenerateTestData<DateTime>();
             (dt is DateTime).Should().BeTrue();

@@ -54,8 +54,8 @@ namespace PowNet.Test.Extensions
             var res = f.AnalyzeMemoryAllocations(iterations: 5);
             res.IsAnalysisSkipped.Should().BeFalse();
             // Some runtimes may report zero delta for small transient allocations; just ensure non-negative and that metrics exist
-            res.TotalAllocations.Should().BeGreaterOrEqualTo(0);
-            res.MaxAllocation.Should().BeGreaterOrEqualTo(0);
+            res.TotalAllocations.Should().BeGreaterThanOrEqualTo(0);
+            res.MaxAllocation.Should().BeGreaterThanOrEqualTo(0);
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace PowNet.Test.Extensions
         {
             var result = await DevelopmentTools.RunBenchmarkAsync("t", async () => await Task.Delay(1), 3);
             result.Iterations.Should().Be(3);
-            result.TotalTime.Should().BeGreaterOrEqualTo(TimeSpan.Zero);
+            result.TotalTime.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
         }
     }
 }

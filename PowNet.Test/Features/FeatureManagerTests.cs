@@ -18,7 +18,7 @@ namespace PowNet.Test.Features
             FeatureManager.IsEnabled("X").Should().BeFalse();
 
             var cfg = FeatureManager.GetFeatureConfig<int>("CacheEnabled", "DefaultExpirationMinutes", -1);
-            cfg.Should().BeGreaterOrEqualTo(-1);
+            cfg.Should().BeGreaterThanOrEqualTo(-1);
         }
 
         [Fact]

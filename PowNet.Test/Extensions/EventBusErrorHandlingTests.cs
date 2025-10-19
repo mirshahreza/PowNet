@@ -25,7 +25,7 @@ namespace PowNet.Test.Extensions
             // Implementation may swallow due to timing; assert either exception or second handler not run twice
             if (ex is null)
             {
-                successCalls.Should().BeLessOrEqualTo(1);
+                successCalls.Should().BeLessThanOrEqualTo(1);
             }
             else
             {
